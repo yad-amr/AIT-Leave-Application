@@ -2,9 +2,9 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { createApp } = require('./auth');
-function setup(t) {
+function setup(t, overrides = {}) {
   let clock = Date.now(), code;
-  const config = { secret: 'test-secret-that-is-at-least-32-characters', domain: 'aitpune.edu.in', otpMs: 300000, sessionMs: 3600000, origin: 'http://localhost:5173', production: false };
+  const config = { secret: 'test-secret-that-is-at-least-32-characters', domain: 'aitpune.edu.in', otpMs: 300000, sessionMs: 3600000, origin: 'http://localhost:5173', production: false, ...overrides };
   const app = createApp({ config, now: () => clock, users: { findOne: async ({ email, role }) => email === `${role}${role === 'student' ? '_123456' : ''}@aitpune.edu.in` ? { id: role, email, role, name: role } : null }, sendMail: async (email, otp) => { code = otp; } });
   t.after(() => app.locals.close());
   const agent = request.agent(app);
@@ -67,4 +67,18 @@ test('role-specific college email templates enforce six registration digits', as
   assert.equal((await s.send('name_123456@aitpune.edu.in', 'student')).status, 200);
   assert.equal((await s.send('name_123456@aitpune.edu.in', 'faculty')).status, 400);
   assert.equal((await s.send('name@aitpune.edu.in', 'faculty')).status, 200);
+});
+
+test('direct login issues a role-protected session only in local development', async t => {
+  const s = setup(t, { devMode: true });
+  assert.equal((await s.agent.get('/api/auth/config')).body.directLogin, true);
+  await s.agent.post('/api/auth/login').send({ email: 'student_123456@aitpune.edu.in', role: 'student' }).expect(200);
+  await s.agent.get('/api/student/dashboard').expect(200);
+  await s.agent.get('/api/faculty/dashboard').expect(403);
+  await s.agent.post('/api/auth/login').send({ email: 'unknown_123456@aitpune.edu.in', role: 'student' }).expect(400);
+  for (const overrides of [{ devMode: false }, { devMode: true, production: true }]) {
+    const locked = setup(t, overrides);
+    assert.equal((await locked.agent.get('/api/auth/config')).body.directLogin, false);
+    await locked.agent.post('/api/auth/login').send({ email: 'student_123456@aitpune.edu.in', role: 'student' }).expect(403);
+  }
 });

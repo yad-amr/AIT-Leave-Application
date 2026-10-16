@@ -44,7 +44,23 @@ function createApp({ config, users, sendMail, now = Date.now }) {
     req.key = `${email}:${req.body.role}`;
     next();
   }
-  app.get('/api/auth/config', (req, res) => res.json({ domain: config.domain }));
+  function signIn(res, user) {
+      const sid = crypto.randomUUID();
+      sessions.set(sid, now() + config.sessionMs);
+      const token = jwt.sign({ sub: String(user.id || user._id), email: user.email, role: user.role, name: user.name, approver_role: user.approver_role, sid }, config.secret, { expiresIn: Math.floor(config.sessionMs / 1000) });
+      res.cookie('session', token, { ...cookie, maxAge: config.sessionMs });
+      res.json({ user: { email: user.email, role: user.role, name: user.name } });
+  }
+  app.post('/api/auth/login', identity, async (req, res, next) => {
+    if (!config.devMode || config.production) return res.status(403).json({ error: 'Direct login is only available in local development.' });
+    if (!limit(`direct-login:${req.ip}`, 30, 15 * 60000)) return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
+    try {
+      const user = await users.findOne({ email: req.email, role: req.body.role });
+      if (!user) return res.status(400).json({ error: 'Account not found. Use a seeded college account.' });
+      signIn(res, user);
+    } catch (error) { next(error); }
+  });
+  app.get('/api/auth/config', (req, res) => res.json({ domain: config.domain, directLogin: !!config.devMode && !config.production }));
   app.post('/api/auth/request-otp', identity, async (req, res, next) => {
     try {
       const ipAllowed = limit(`send-ip:${req.ip}`, 20, 15 * 60000);
@@ -76,11 +92,7 @@ function createApp({ config, users, sendMail, now = Date.now }) {
       challenges.delete(req.key); // Consume before the asynchronous account lookup.
       const user = await users.findOne({ email: req.email, role: req.body.role });
       if (!user) return res.status(400).json({ error: 'Unable to sign in. Check your details or contact your college administrator.' });
-      const sid = crypto.randomUUID();
-      sessions.set(sid, now() + config.sessionMs);
-      const token = jwt.sign({ sub: String(user.id || user._id), email: user.email, role: user.role, name: user.name, approver_role: user.approver_role, sid }, config.secret, { expiresIn: Math.floor(config.sessionMs / 1000) });
-      res.cookie('session', token, { ...cookie, maxAge: config.sessionMs });
-      res.json({ user: { email: user.email, role: user.role, name: user.name } });
+      signIn(res, user);
     } catch (error) { next(error); }
   });
   function authenticated(req, res, next) {

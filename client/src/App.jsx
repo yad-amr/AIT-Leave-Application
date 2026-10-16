@@ -9,7 +9,7 @@ async function api(path, body) {
   if (!response.ok) throw Object.assign(new Error(data.error || 'Request failed. Please try again.'), { status: response.status, ...data })
   return data
 }
-function Login({ domain }) {
+function Login({ domain, directLogin }) {
   const { role } = useParams()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -36,6 +36,7 @@ function Login({ domain }) {
     if (!validEmail || pending.current) return
     pending.current = true; setBusy(true); setError('')
     try {
+      if (directLogin) { await api('/auth/login', { email, role }); navigate(`/${role}/dashboard`, { replace: true }); return }
       const data = await api('/auth/request-otp', { email, role })
       setChallenge(data); setDigits(Array(6).fill('')); setNow(Date.now())
       setTimeout(() => inputs.current[0]?.focus(), 0)
@@ -62,13 +63,13 @@ function Login({ domain }) {
   return <main className="shell">
     <aside className="intro"><a className="brand" href="/">SL <span>SMART LEAVE</span></a><div><p className="eyebrow">YOUR CAMPUS. CONNECTED.</p><h1>A little less paperwork.<br />A lot more possibility.</h1><p>One place for hostel leave and academic outpasses. Sign in with your college email to get started.</p></div><p className="footnote">Smart Leave Management System · AIT</p></aside>
     <section className="panel" aria-labelledby="login-title"><div className="card">
-      <p className="eyebrow">WELCOME BACK</p><h2 id="login-title">Sign in to Smart Leave</h2><p className="muted">Your college inbox is your key. No password needed.</p>
+      <p className="eyebrow">WELCOME BACK</p><h2 id="login-title">Sign in to Smart Leave</h2><p className="muted">{directLogin ? 'Development preview: sign in directly with your college email.' : 'Your college inbox is your key. No password needed.'}</p>
       <nav className="roles" aria-label="Sign-in role"><NavLink to="/login/student">Student</NavLink><NavLink to="/login/faculty">Faculty</NavLink></nav>
       <form onSubmit={send} aria-busy={busy}>
         <label htmlFor="email">College email address</label>
         <input id="email" type="email" autoComplete="email" placeholder={template} value={email} readOnly={!!challenge} onBlur={() => setTouched(true)} onChange={e => setEmail(e.target.value)} aria-invalid={touched && !validEmail} aria-describedby="email-help" required />
         <p id="email-help" className={touched && !validEmail ? 'error' : 'hint'}>{touched && !validEmail ? emailError : `Use ${template}, your official Microsoft 365 email.`}</p>
-        {!challenge && <button disabled={busy || !domain} type="submit">{busy ? 'Sending code…' : 'Send OTP →'}</button>}
+        {!challenge && <button disabled={busy || !domain} type="submit">{busy ? (directLogin ? 'Signing in…' : 'Sending code…') : (directLogin ? 'Sign in →' : 'Send OTP →')}</button>}
         {challenge && <>
           <div className="otp-heading"><label id="otp-label">Enter your verification code</label><button className="text-button" type="button" disabled={busy} onClick={() => { setChallenge(null); setDigits(Array(6).fill('')); setError('') }}>Change email</button></div>
           <p className="hint">If eligible, a code has been sent to your college inbox.</p>
@@ -117,13 +118,14 @@ function Dashboard({ student = false }) {
   return <main className="dashboard"><p className="eyebrow">SMART LEAVE / {role}</p><h1>{user ? `Welcome, ${user.name}` : 'Checking your session…'}</h1><p>{user?.email}</p><p>Your {role} dashboard will live here.</p>{error && <p role="alert" className="error">{error}</p>}<button onClick={async () => { try { await api('/auth/logout', {}); navigate(`/login/${role}`, { replace: true }) } catch (err) { setError(err.message) } }}>Sign out</button></main>
 }
 function App() {
+  const [directLogin, setDirectLogin] = useState(false)
   const [domain, setDomain] = useState('')
   const [error, setError] = useState('')
-  useEffect(() => { api('/auth/config').then(data => setDomain(data.domain)).catch(() => setError('Unable to connect. Check the server and reload this page.')) }, [])
+  useEffect(() => { api('/auth/config').then(data => { setDomain(data.domain); setDirectLogin(!!data.directLogin) }).catch(() => setError('Unable to connect. Check the server and reload this page.')) }, [])
   if (error) return <p role="alert">{error}</p>
   if (!domain) return <p role="status">Connecting to Smart Leave…</p>
-  return <BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} />} /><Route path="/student/*" element={<StudentGuard />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
+  return <BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} directLogin={directLogin} />} /><Route path="/student/*" element={<StudentGuard />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
 }
 function StudentGuard() { return <Dashboard student /> }
-function RoleLogin({ domain }) { const { role } = useParams(); return <Login key={role} domain={domain} /> }
+function RoleLogin({ domain, directLogin }) { const { role } = useParams(); return <Login key={role} domain={domain} directLogin={directLogin} /> }
 export default App
