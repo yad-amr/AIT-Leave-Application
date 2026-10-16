@@ -20,7 +20,7 @@
   color: var(--text);
   color-scheme: light;
   background: linear-gradient(125deg, #eadffc, #b4c7fc);
-  border-radius: 24px;
+  border-radius: 0;
   overflow: clip;
 }
 .intro, .panel { background: #eceef1; }
@@ -43,7 +43,7 @@
 .card button:not(.text-button):hover, .roles .active:hover { background: #254ed0; }
 .card .text-button { color: var(--text); }
 @media (max-width: 760px) {
-  .shell { border-radius: 10px; }
+  .shell { border-radius: 0; }
   .intro { padding: 28px; gap: 40px; }
   .panel { padding: 24px 20px 40px; }
   .panel .card { padding: 24px; }
