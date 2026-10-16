@@ -17,9 +17,9 @@ Set `SESSION_SECRET` in `server/.env` to a random value of at least 32 character
 npm run dev
 ```
 
-Open http://localhost:5173/login/student or /login/faculty. With the demo domain `aitpune.edu.in`, use `student_123456@aitpune.edu.in` or `faculty@aitpune.edu.in`. Copy the six-digit code from the **server terminal**. Only explicit local `DEV_MODE=true` permits console codes; production never prints them. This exception is solely for development without SMTP.
+Open http://localhost:5173. Use `student_123456@aitpune.edu.in` for the student portal, or sign in to the faculty portal with one of `warden@aitpune.edu.in`, `counsellor@aitpune.edu.in`, `hod@aitpune.edu.in`, or `joint_director@aitpune.edu.in`. Copy the six-digit code from the **server terminal**. Only explicit local `DEV_MODE=true` permits console codes; production never prints them. This exception is solely for development without SMTP.
 
-Without `MONGODB_URI`, local dev starts an ephemeral MongoDB and seeds sample student, faculty, and warden users. The first run may download a MongoDB binary and requires network access and a supported OS. The data disappears on restart. For persistent users, set `MONGODB_URI` and run `npm --prefix server run seed`. Dev startup also seeds missing demo users without overwriting existing records. Wardens exist in the model but have no login page in this scope.
+Without `MONGODB_URI`, local dev starts an ephemeral MongoDB and seeds sample student and four faculty approver accounts. The first run may download a MongoDB binary and requires network access and a supported OS. The data disappears on restart. For persistent users, set `MONGODB_URI` and run `npm --prefix server run seed`. Dev startup also seeds missing demo users without overwriting existing records. Staff sign in through the same faculty login; each account is assigned one approval stage in its user record (`approval_role`).
 
 ## Configuration
 
@@ -27,7 +27,7 @@ See [server/.env.example](server/.env.example). Configuration is loaded from `se
 
 | Variable | Purpose |
 | --- | --- |
-| `COLLEGE_DOMAIN` | Exact allowed email domain; default `aitpune.edu.in`. Students use `name_123456@aitpune.edu.in` (exactly six registration digits); faculty use `name@aitpune.edu.in`. Subdomains are not implicitly accepted. |
+| `COLLEGE_DOMAIN` | Exact allowed email domain; default `aitpune.edu.in`. Students use `name_123456@aitpune.edu.in` (exactly six registration digits); faculty use a college email local part such as `warden@aitpune.edu.in` or `joint_director@aitpune.edu.in`. Subdomains are not implicitly accepted. |
 | `SESSION_SECRET` | Required random secret, at least 32 characters; signs sessions and keys OTP hashes. |
 | `OTP_EXPIRY_SECONDS` | OTP validity, default 300 seconds. |
 | `SESSION_EXPIRY_SECONDS` | Session validity, default 28800 seconds. |
@@ -48,7 +48,12 @@ Unknown emails are **not auto-provisioned**. A stored user must match both email
 - `POST /api/auth/verify-otp`: `{ email, role, otp }`; issues the session cookie.
 - `GET /api/auth/session`: current user, or 401 when expired.
 - `POST /api/auth/logout`: clears and revokes the current session.
-- `GET /api/student/dashboard`, `/api/faculty/dashboard`: authenticated role-specific placeholders.
+- `GET /api/student/dashboard`, `/api/faculty/dashboard`: authenticated role-specific access checks.
+- `POST /api/student/requests`, `GET /api/student/requests`: submit a tokenized leave request and follow its approval timeline.
+- `GET /api/faculty/requests`, `GET /api/faculty/requests?view=approved`, `GET /api/faculty/logs`: faculty queue, completed approvals, and the current approver's response log.
+- `POST /api/faculty/requests/:id/respond`: approve, reject, or request student contact. Approvals move in order through Warden → Counsellor → HOD → Joint Director. Reject and contact responses require a note.
+
+Each recorded response has an application-generated HMAC signature using the session secret, binding the request token, action, approver identity, timestamp, and note. This is an authenticated audit signature, not a personal PKI certificate. It is shown with each response in the timeline and approval certificate. Once all four stages approve, the student can use **View / print approval** and the browser's **Print / Save as PDF** action to produce a PDF certificate. Automatic email delivery of a PDF is not configured; SMTP currently supports sign-in codes only.
 
 Codes use cryptographic randomness and keyed SHA-256 hashes with constant-time comparison. They expire after five minutes by default and are consumed before account lookup. Requests enforce a 30-second cooldown, five requests per email and twenty per IP per fifteen minutes. Verification allows five attempts per email per OTP validity window and sixty per IP per fifteen minutes. Resending cannot reset the email verification budget. Expired entries are pruned every minute. No raw OTP is persisted or returned by the API.
 

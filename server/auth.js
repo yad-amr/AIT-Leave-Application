@@ -4,8 +4,12 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const LeaveRequest = require('./LeaveRequest');
 
-function createApp({ config, users, sendMail, now = Date.now }) {
+const approvalRoles = ['warden', 'counsellor', 'hod', 'joint_director'];
+const nextApprovalRole = role => approvalRoles[approvalRoles.indexOf(role) + 1] || null;
+
+function createApp({ config, users, leaveRequests = LeaveRequest, sendMail, now = Date.now }) {
   const app = express();
   const challenges = new Map();
   const limits = new Map();
@@ -13,7 +17,7 @@ function createApp({ config, users, sendMail, now = Date.now }) {
   const hash = value => crypto.createHmac('sha256', config.secret).update(value).digest();
   const emailValid = (email, role) => {
     const [local, domain] = email.split('@');
-    const pattern = role === 'student' ? /^[a-z][a-z.-]*_\d{6}$/i : /^[a-z][a-z.-]*$/i;
+    const pattern = role === 'student' ? /^[a-z][a-z.-]*_\d{6}$/i : /^[a-z][a-z._-]*$/i;
     return email.split('@').length === 2 && domain === config.domain && pattern.test(local);
   };
   const cookie = { httpOnly: true, secure: config.production, sameSite: 'strict', path: '/' };
@@ -78,9 +82,9 @@ function createApp({ config, users, sendMail, now = Date.now }) {
       if (!user) return res.status(400).json({ error: 'Unable to sign in. Check your details or contact your college administrator.' });
       const sid = crypto.randomUUID();
       sessions.set(sid, now() + config.sessionMs);
-      const token = jwt.sign({ sub: String(user.id || user._id), email: user.email, role: user.role, name: user.name, sid }, config.secret, { expiresIn: Math.floor(config.sessionMs / 1000) });
+      const token = jwt.sign({ sub: String(user.id || user._id), email: user.email, role: user.role, approvalRole: user.approval_role || null, name: user.name, sid }, config.secret, { expiresIn: Math.floor(config.sessionMs / 1000) });
       res.cookie('session', token, { ...cookie, maxAge: config.sessionMs });
-      res.json({ user: { email: user.email, role: user.role, name: user.name } });
+      res.json({ user: { email: user.email, role: user.role, approvalRole: user.approval_role || null, name: user.name } });
     } catch (error) { next(error); }
   });
   function authenticated(req, res, next) {
@@ -91,14 +95,84 @@ function createApp({ config, users, sendMail, now = Date.now }) {
       next();
     } catch { res.status(401).json({ error: 'Your session has expired. Please sign in again.' }); }
   }
-  app.get('/api/auth/session', authenticated, (req, res) => res.json({ user: { email: req.user.email, role: req.user.role, name: req.user.name } }));
+  app.get('/api/auth/session', authenticated, (req, res) => res.json({ user: { email: req.user.email, role: req.user.role, approvalRole: req.user.approvalRole || null, name: req.user.name } }));
   app.post('/api/auth/logout', (req, res) => {
     try { sessions.delete(jwt.verify(req.cookies.session, config.secret).sid); } catch { /* already signed out */ }
     res.clearCookie('session', cookie).json({ message: 'Signed out.' });
   });
   for (const role of ['student', 'faculty']) app.get(`/api/${role}/dashboard`, authenticated, (req, res) => {
     if (req.user.role !== role) return res.status(403).json({ error: 'This page is for a different role.' });
-    res.json({ message: `Welcome to your ${role} dashboard.` });
+    res.json({ message: `Welcome to your ${role} dashboard.`, approvalRole: req.user.approvalRole || null });
+  });
+  function signedEvent(request, action, role, actor, note) {
+    const createdAt = new Date(now()).toISOString();
+    const payload = [request.token, action, role || '', actor.email, createdAt, note].join('\n');
+    return { action, role, actorName: actor.name, actorEmail: actor.email, note, createdAt, signature: crypto.createHmac('sha256', config.secret).update(payload).digest('hex') };
+  }
+  app.post('/api/student/requests', authenticated, async (req, res, next) => {
+    if (req.user.role !== 'student') return res.status(403).json({ error: 'This page is for students.' });
+    const { leaveType, startDate, endDate, destination, reason } = req.body;
+    const start = new Date(startDate), end = new Date(endDate);
+    if (!['Hostel leave', 'Academic outpass'].includes(leaveType) || !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end < start || !String(destination || '').trim() || !String(reason || '').trim() || String(destination).length > 160 || String(reason).length > 2000) {
+      return res.status(400).json({ error: 'Provide a valid leave type, date range, destination, and reason.' });
+    }
+    try {
+      const token = `AIT-${new Date(now()).getFullYear()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+      const request = new leaveRequests({
+        token, studentEmail: req.user.email, studentName: req.user.name, leaveType,
+        startDate: start, endDate: end, destination: String(destination).trim(), reason: String(reason).trim(),
+        currentStage: approvalRoles[0],
+      });
+      request.timeline.push(signedEvent(request, 'submitted', null, req.user, 'Leave request submitted'));
+      await request.save();
+      res.status(201).json({ request });
+    } catch (error) { next(error); }
+  });
+  app.get('/api/student/requests', authenticated, async (req, res, next) => {
+    if (req.user.role !== 'student') return res.status(403).json({ error: 'This page is for students.' });
+    try { res.json({ requests: await leaveRequests.find({ studentEmail: req.user.email }).sort({ createdAt: -1 }).lean() }); }
+    catch (error) { next(error); }
+  });
+  app.get('/api/faculty/requests', authenticated, async (req, res, next) => {
+    if (req.user.role !== 'faculty' || !approvalRoles.includes(req.user.approvalRole)) return res.status(403).json({ error: 'Your account is not assigned to an approval stage.' });
+    try {
+      const query = req.query.view === 'approved'
+        ? { status: 'approved' }
+        : { status: 'pending', currentStage: req.user.approvalRole };
+      res.json({ requests: await leaveRequests.find(query).sort({ createdAt: -1 }).lean() });
+    } catch (error) { next(error); }
+  });
+  app.get('/api/faculty/logs', authenticated, async (req, res, next) => {
+    if (req.user.role !== 'faculty' || !approvalRoles.includes(req.user.approvalRole)) return res.status(403).json({ error: 'Your account is not assigned to an approval stage.' });
+    try {
+      const requests = await leaveRequests.find({ 'timeline.actorEmail': req.user.email }).sort({ updatedAt: -1 }).lean();
+      const logs = requests.flatMap(request => request.timeline.filter(event => event.actorEmail === req.user.email).map(event => ({ ...event, token: request.token, studentName: request.studentName, leaveType: request.leaveType })));
+      res.json({ logs });
+    } catch (error) { next(error); }
+  });
+  app.post('/api/faculty/requests/:id/respond', authenticated, async (req, res, next) => {
+    if (req.user.role !== 'faculty' || !approvalRoles.includes(req.user.approvalRole)) return res.status(403).json({ error: 'Your account is not assigned to an approval stage.' });
+    const { action, note = '' } = req.body;
+    if (!['approved', 'rejected', 'needs_information'].includes(action)) return res.status(400).json({ error: 'Choose approve, reject, or request more information.' });
+    if (typeof note !== 'string' || note.length > 1000 || (action !== 'approved' && !note.trim())) return res.status(400).json({ error: 'Add a short note for this response.' });
+    try {
+      const request = await leaveRequests.findOne({ _id: req.params.id, status: 'pending', currentStage: req.user.approvalRole });
+      if (!request) return res.status(404).json({ error: 'This request is no longer awaiting your response.' });
+      const event = signedEvent(request, action, req.user.approvalRole, req.user, note.trim());
+      request.timeline.push(event);
+      if (action === 'approved') {
+        request.currentStage = nextApprovalRole(req.user.approvalRole);
+        if (!request.currentStage) request.status = 'approved';
+      } else if (action === 'rejected') {
+        request.status = 'rejected';
+        request.currentStage = null;
+      }
+      await request.save();
+      res.json({ request });
+    } catch (error) {
+      if (error.name === 'VersionError') return res.status(409).json({ error: 'This request was updated by another reviewer. Refresh and try again.' });
+      next(error);
+    }
   });
   app.use((error, req, res, next) => { // eslint-disable-line no-unused-vars
     res.status(error.type === 'entity.parse.failed' ? 400 : 500).json({ error: 'Unable to process your request. Please try again.' });

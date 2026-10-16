@@ -2,15 +2,52 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { createApp } = require('./auth');
-function setup(t) {
+function setup(t, leaveRequests) {
   let clock = Date.now(), code;
   const config = { secret: 'test-secret-that-is-at-least-32-characters', domain: 'aitpune.edu.in', otpMs: 300000, sessionMs: 3600000, origin: 'http://localhost:5173', production: false };
-  const app = createApp({ config, now: () => clock, users: { findOne: async ({ email, role }) => email === `${role}${role === 'student' ? '_123456' : ''}@aitpune.edu.in` ? { id: role, email, role, name: role } : null }, sendMail: async (email, otp) => { code = otp; } });
+  const app = createApp({ config, now: () => clock, leaveRequests, users: { findOne: async ({ email, role }) => {
+    if (role === 'student' && email === 'student_123456@aitpune.edu.in') return { id: role, email, role, name: role };
+    if (role === 'faculty') {
+      const approvalRole = { warden: 'warden', counsellor: 'counsellor', hod: 'hod', joint_director: 'joint_director', faculty: 'warden' }[email.split('@')[0]];
+      if (approvalRole) return { id: email, email, role, approval_role: approvalRole, name: approvalRole };
+    }
+    return null;
+  } }, sendMail: async (email, otp) => { code = otp; } });
   t.after(() => app.locals.close());
   const agent = request.agent(app);
   const send = (email = 'student_123456@aitpune.edu.in', role = 'student') => agent.post('/api/auth/request-otp').send({ email, role });
   const verify = (otp = code, role = 'student', email = `${role}${role === 'student' ? '_123456' : ''}@aitpune.edu.in`) => agent.post('/api/auth/verify-otp').send({ email, role, otp });
   return { app, agent, send, verify, advance: ms => { clock += ms; } };
+}
+function inMemoryRequests() {
+  const rows = [];
+  let nextId = 0;
+  return class MemoryRequest {
+    constructor(fields) {
+      Object.assign(this, fields);
+      this.timeline ||= [];
+      this.status ||= 'pending';
+      this.currentStage ||= 'warden';
+      this._id = `request-${++nextId}`;
+    }
+    async save() {
+      const index = rows.findIndex(row => row._id === this._id);
+      if (index < 0) rows.push(this); else rows[index] = this;
+      return this;
+    }
+    static find(query) {
+      const matches = rows.filter(row =>
+        (!query.studentEmail || row.studentEmail === query.studentEmail) &&
+        (!query.status || row.status === query.status) &&
+        (!query.currentStage || row.currentStage === query.currentStage) &&
+        (!query['timeline.actorEmail'] || row.timeline.some(event => event.actorEmail === query['timeline.actorEmail']))
+      );
+      return { sort() { return this; }, lean: async () => structuredClone(matches) };
+    }
+    static async findOne(query) {
+      return rows.find(row => row._id === query._id && row.status === query.status && row.currentStage === query.currentStage) || null;
+    }
+  };
 }
 test('domain validation rejects external domains and malformed email', async t => {
   const s = setup(t);
@@ -67,4 +104,38 @@ test('role-specific college email templates enforce six registration digits', as
   assert.equal((await s.send('name_123456@aitpune.edu.in', 'student')).status, 200);
   assert.equal((await s.send('name_123456@aitpune.edu.in', 'faculty')).status, 400);
   assert.equal((await s.send('name@aitpune.edu.in', 'faculty')).status, 200);
+});
+test('leave tokens move through four signed approval stages and retain contact/log history', async t => {
+  const s = setup(t, inMemoryRequests());
+  await s.send(); await s.verify();
+  const created = await s.agent.post('/api/student/requests').send({
+    leaveType: 'Hostel leave', startDate: '2026-11-10', endDate: '2026-11-12',
+    destination: 'Pune', reason: 'Family event',
+  });
+  assert.equal(created.status, 201);
+  assert.match(created.body.request.token, /^AIT-\d{4}-[A-F0-9]{8}$/);
+  assert.equal((await s.agent.get('/api/faculty/requests')).status, 403);
+  assert.equal((await s.agent.get('/api/student/requests')).body.requests.length, 1);
+
+  await s.send('warden@aitpune.edu.in', 'faculty'); await s.verify(undefined, 'faculty', 'warden@aitpune.edu.in');
+  const contact = await s.agent.post(`/api/faculty/requests/${created.body.request._id}/respond`).send({ action: 'needs_information', note: 'Please confirm your return date.' });
+  assert.equal(contact.status, 200);
+  assert.equal(contact.body.request.currentStage, 'warden');
+  assert.equal((await s.agent.get('/api/faculty/requests')).body.requests.length, 1);
+  assert.equal((await s.agent.get('/api/faculty/logs')).body.logs.length, 1);
+  assert.equal((await s.agent.post(`/api/faculty/requests/${created.body.request._id}/respond`).send({ action: 'approved' })).status, 200);
+
+  for (const role of ['counsellor', 'hod', 'joint_director']) {
+    const email = `${role}@aitpune.edu.in`;
+    await s.send(email, 'faculty'); await s.verify(undefined, 'faculty', email);
+    const pending = await s.agent.get('/api/faculty/requests');
+    assert.equal(pending.body.requests[0].currentStage, role);
+    const response = await s.agent.post(`/api/faculty/requests/${created.body.request._id}/respond`).send({ action: 'approved' });
+    assert.equal(response.status, 200);
+  }
+  const approved = await s.agent.get('/api/faculty/requests?view=approved');
+  assert.equal(approved.body.requests.length, 1);
+  assert.equal(approved.body.requests[0].status, 'approved');
+  assert.equal(approved.body.requests[0].timeline.length, 6);
+  assert.ok(approved.body.requests[0].timeline.every(event => /^[a-f0-9]{64}$/.test(event.signature)));
 });

@@ -30,3 +30,29 @@ test('expired sessions redirect to matching login', async () => {
   render(<App />); await screen.findByLabelText('College email address')
   expect(window.location.pathname).toBe('/login/faculty')
 })
+test('home page provides the AIT enquiry and footer links', async () => {
+  mock(url => url.endsWith('/config') ? { domain: 'aitpune.edu.in' } : {})
+  render(<App />)
+  expect(await screen.findByRole('heading', { name: 'Leave, without the paperwork.' })).toBeTruthy()
+  expect(screen.getByRole('link', { name: 'For an Enquiry' }).getAttribute('href')).toBe('https://www.aitpune.com/Contact-Us.aspx')
+  expect(screen.getByRole('link', { name: 'Computer Engg' }).getAttribute('href')).toBe('https://www.aitpune.com/Computer-Engg.aspx')
+  expect(screen.getByText('Site Updated On :01 Mar 2026')).toBeTruthy()
+})
+test('faculty portal exposes pending, approved, and response log views', async () => {
+  window.history.replaceState({}, '', '/faculty/dashboard')
+  mock(url => {
+    if (url.endsWith('/config')) return { domain: 'aitpune.edu.in' }
+    if (url.endsWith('/auth/session')) return { user: { role: 'faculty', approvalRole: 'warden', name: 'Demo Warden' } }
+    if (url.endsWith('/faculty/dashboard')) return {}
+    if (url.endsWith('/faculty/logs')) return { logs: [] }
+    if (url.startsWith('/api/faculty/requests')) return { requests: [] }
+    return {}
+  })
+  render(<App />)
+  expect(await screen.findByRole('heading', { name: 'Welcome, Demo Warden' })).toBeTruthy()
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('button', { name: 'Approved requests' }))
+  expect(await screen.findByRole('heading', { name: 'Approved requests' })).toBeTruthy()
+  await user.click(screen.getByRole('button', { name: 'Logs' }))
+  expect(await screen.findByRole('heading', { name: 'Your response log' })).toBeTruthy()
+})
