@@ -1,56 +1,44 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, expect, test } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, expect, test, vi } from 'vitest'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
 
-beforeEach(() => localStorage.clear())
-afterEach(() => { cleanup(); window.history.replaceState({}, '', '/') })
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); window.history.replaceState({}, '', '/') })
+function mock(handler) {
+  vi.stubGlobal('fetch', vi.fn(async (url, options) => ({ ok: true, json: async () => handler(url, options) })))
+}
 
-test('home page opens the student and faculty portals without login', async () => {
-  render(<App />)
-  expect(screen.getByRole('heading', { name: 'Leave, without the paperwork.' })).toBeTruthy()
-  expect(screen.getByRole('link', { name: 'Open student portal' }).getAttribute('href')).toBe('/portal/student')
-  expect(screen.getByRole('link', { name: 'Open faculty portal' }).getAttribute('href')).toBe('/portal/faculty')
-  expect(screen.getByRole('link', { name: 'For an Enquiry' }).getAttribute('href')).toBe('https://www.aitpune.com/Contact-Us.aspx')
-  expect(screen.getByText('Site Updated On :01 Mar 2026')).toBeTruthy()
-  expect(screen.queryByRole('link', { name: /sign in/i })).toBeNull()
-})
-
-test('student can submit a local demo token and find it in the faculty portal', async () => {
-  window.history.replaceState({}, '', '/portal/student')
+test('password login validates college domain and opens the student dashboard', async () => {
+  window.history.replaceState({}, '', '/login/student')
+  mock((url) => url.endsWith('/config') ? { domain: 'aitpune.edu.in' } : { user: { role: 'student', email: 'student_123456@aitpune.edu.in', name: 'Demo student' } })
   render(<App />)
   const user = userEvent.setup()
-  await user.click(screen.getByRole('button', { name: 'New leave request +' }))
-  await user.type(screen.getByLabelText('Destination'), 'Pune')
-  await user.type(screen.getByLabelText('From'), '2026-11-10')
-  await user.type(screen.getByLabelText('To'), '2026-11-11')
-  await user.type(screen.getByLabelText('Reason for leave'), 'Family visit')
-  await user.click(screen.getByRole('button', { name: 'Submit demo request' }))
-  expect((await screen.findAllByText(/AIT-DEMO-/)).length).toBeGreaterThan(0)
-  expect(screen.getByText('Demo portal')).toBeTruthy()
-  await user.click(screen.getByRole('link', { name: 'Faculty portal' }))
-  expect((await screen.findAllByText(/AIT-DEMO-/)).length).toBeGreaterThan(0)
-  expect(screen.getAllByRole('button', { name: 'Approve' }).length).toBeGreaterThan(0)
+  const email = await screen.findByLabelText('College email address')
+  await user.type(email, 'someone@gmail.com')
+  await user.type(screen.getByLabelText('Password'), 'DemoPass123!')
+  await user.click(screen.getByRole('button', { name: /Sign in/ }))
+  expect(screen.getByText('Use name_123456@aitpune.edu.in with a six-digit registration number.')).toBeTruthy()
+  expect(fetch.mock.calls.some(([url]) => url.endsWith('/login'))).toBe(false)
+  await user.clear(email)
+  await user.type(email, 'student_123456@aitpune.edu.in')
+  await user.click(screen.getByRole('button', { name: /Sign in/ }))
+  await screen.findByText('Good afternoon, Demo student')
+  expect(fetch.mock.calls.some(([url, options]) => url.endsWith('/login') && JSON.parse(options.body).password === 'DemoPass123!')).toBe(true)
 })
 
-test('faculty can switch approval stage and see response logs', async () => {
-  window.history.replaceState({}, '', '/portal/faculty')
-  render(<App />)
-  const user = userEvent.setup()
-  expect(await screen.findByText('AIT-DEMO-2026-001')).toBeTruthy()
-  await user.click(screen.getByRole('button', { name: 'Approve' }))
-  expect(await screen.findByText('You’re all caught up.')).toBeTruthy()
-  await user.selectOptions(screen.getByLabelText('Review as'), 'counsellor')
-  expect(await screen.findByText('AIT-DEMO-2026-001')).toBeTruthy()
-  await user.selectOptions(screen.getByLabelText('Review as'), 'warden')
-  await user.click(screen.getByRole('button', { name: 'Logs' }))
-  expect(await screen.findByText(/Approved · Warden/)).toBeTruthy()
-})
-
-test('legacy dashboard paths open the portal directly', async () => {
+test('student navigating to faculty page is redirected to the student dashboard', async () => {
   window.history.replaceState({}, '', '/faculty/dashboard')
+  mock((url) => url.endsWith('/config') ? { domain: 'aitpune.edu.in' } : { user: { role: 'student', name: 'Student', email: 'student_123456@aitpune.edu.in' } })
   render(<App />)
-  expect(await screen.findByRole('heading', { name: 'Warden portal' })).toBeTruthy()
-  expect(window.location.pathname).toBe('/portal/faculty')
+  await waitFor(() => expect(window.location.pathname).toBe('/student/dashboard'))
+  expect(fetch.mock.calls.some(([url]) => url === '/api/faculty/dashboard')).toBe(false)
+})
+
+test('expired sessions redirect to the matching login', async () => {
+  window.history.replaceState({}, '', '/faculty/dashboard')
+  vi.stubGlobal('fetch', vi.fn(async (url) => ({ ok: url.endsWith('/config'), status: 401, json: async () => url.endsWith('/config') ? { domain: 'aitpune.edu.in' } : { error: 'Session expired' } })))
+  render(<App />)
+  await screen.findByLabelText('College email address')
+  expect(window.location.pathname).toBe('/login/faculty')
 })
