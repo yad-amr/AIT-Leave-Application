@@ -12,6 +12,6 @@ function config() {
   if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) throw new Error('Invalid COLLEGE_DOMAIN');
   const devMode = process.env.DEV_MODE === 'true' && !production;
   if (!devMode && (!process.env.SMTP_HOST || !process.env.SMTP_FROM)) throw new Error('Configure SMTP or explicitly set DEV_MODE=true locally.');
-  return { production, secret, domain, devMode, otpMs: positive('OTP_EXPIRY_SECONDS', 300) * 1000, sessionMs: positive('SESSION_EXPIRY_SECONDS', 28800) * 1000, origin: process.env.APP_ORIGIN || 'http://localhost:5173' };
+  return { production, secret, domain, devMode, otpMs: positive('OTP_EXPIRY_SECONDS', 300) * 1000, idleMs: positive('SESSION_IDLE_SECONDS', 1800) * 1000, sessionMs: positive('SESSION_EXPIRY_SECONDS', 28800) * 1000, origin: process.env.APP_ORIGIN || 'http://localhost:5173' };
 }
 module.exports = config;

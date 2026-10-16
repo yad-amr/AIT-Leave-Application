@@ -10,13 +10,14 @@ function createApp({ config, users, sendMail, now = Date.now }) {
   const challenges = new Map();
   const limits = new Map();
   const sessions = new Map();
+  const idleMs = config.idleMs || 30 * 60000;
   const hash = value => crypto.createHmac('sha256', config.secret).update(value).digest();
   const emailValid = (email, role) => {
     const [local, domain] = email.split('@');
     const pattern = role === 'student' ? /^[a-z][a-z.-]*_\d{6}$/i : /^[a-z][a-z.-]*$/i;
     return email.split('@').length === 2 && domain === config.domain && pattern.test(local);
   };
-  const cookie = { httpOnly: true, secure: config.production, sameSite: 'strict', path: '/' };
+  const cookie = { httpOnly: true, secure: config.origin?.startsWith('https://') || false, sameSite: 'strict', path: '/' };
   app.use(helmet(), express.json({ limit: '16kb' }), cookieParser());
   app.use('/api', (req, res, next) => {
     if (req.method !== 'GET' && req.headers.origin && req.headers.origin !== config.origin) return res.status(403).json({ error: 'Request rejected.' });
@@ -26,7 +27,7 @@ function createApp({ config, users, sendMail, now = Date.now }) {
   const cleanup = setInterval(() => {
     for (const [key, value] of challenges) if (value.expires <= now()) challenges.delete(key);
     for (const [key, value] of limits) if (value.until <= now()) limits.delete(key);
-    for (const [key, value] of sessions) if (value <= now()) sessions.delete(key);
+    for (const [key, value] of sessions) if (Math.min(value.expiresAt, value.idleExpiresAt) <= now()) sessions.delete(key);
   }, 60000);
   cleanup.unref();
   app.locals.close = () => clearInterval(cleanup);
@@ -46,10 +47,10 @@ function createApp({ config, users, sendMail, now = Date.now }) {
   }
   function signIn(res, user) {
       const sid = crypto.randomUUID();
-      sessions.set(sid, now() + config.sessionMs);
+      sessions.set(sid, { expiresAt: now() + config.sessionMs, idleExpiresAt: now() + idleMs });
       const token = jwt.sign({ sub: String(user.id || user._id), email: user.email, role: user.role, name: user.name, approver_role: user.approver_role, sid }, config.secret, { expiresIn: Math.floor(config.sessionMs / 1000) });
       res.cookie('session', token, { ...cookie, maxAge: config.sessionMs });
-      res.json({ user: { email: user.email, role: user.role, name: user.name } });
+      res.json({ user: { email: user.email, role: user.role, name: user.name }, ...sessions.get(sid), idleTimeoutMs: idleMs });
   }
   app.post('/api/auth/login', identity, async (req, res, next) => {
     if (!config.devMode || config.production) return res.status(403).json({ error: 'Direct login is only available in local development.' });
@@ -98,12 +99,17 @@ function createApp({ config, users, sendMail, now = Date.now }) {
   function authenticated(req, res, next) {
     try {
       const user = jwt.verify(req.cookies.session, config.secret, { algorithms: ['HS256'] });
-      if (!sessions.has(user.sid) || sessions.get(user.sid) <= now()) throw new Error('Expired');
+      if (!sessions.has(user.sid) || Math.min(sessions.get(user.sid).expiresAt, sessions.get(user.sid).idleExpiresAt) <= now()) throw new Error('Expired');
       req.user = user;
       next();
     } catch { res.status(401).json({ error: 'Your session has expired. Please sign in again.' }); }
   }
-  app.get('/api/auth/session', authenticated, (req, res) => res.json({ user: { email: req.user.email, role: req.user.role, name: req.user.name } }));
+  app.get('/api/auth/session', authenticated, (req, res) => res.json({ user: { email: req.user.email, role: req.user.role, name: req.user.name }, ...sessions.get(req.user.sid), idleTimeoutMs: idleMs }));
+  app.post('/api/auth/activity', authenticated, (req,res) => {
+    const session = sessions.get(req.user.sid);
+    session.idleExpiresAt = Math.min(session.expiresAt, now() + idleMs);
+    res.json({ ...session, idleTimeoutMs: idleMs });
+  });
   app.post('/api/auth/logout', (req, res) => {
     try { sessions.delete(jwt.verify(req.cookies.session, config.secret).sid); } catch { /* already signed out */ }
     res.clearCookie('session', cookie).json({ message: 'Signed out.' });

@@ -82,3 +82,24 @@ test('direct login issues a role-protected session only in local development', a
     await locked.agent.post('/api/auth/login').send({ email: 'student_123456@aitpune.edu.in', role: 'student' }).expect(403);
   }
 });
+
+test('local cookie survives the next request; idle activity extends idle but never absolute expiry', async t => {
+  const s = setup(t, {devMode:true,sessionMs:8*3600000,idleMs:30*60000});
+  const login=await s.agent.post('/api/auth/login').send({email:'student_123456@aitpune.edu.in',role:'student'}).expect(200);
+  assert.match(login.headers['set-cookie'][0],/Path=\//); assert.doesNotMatch(login.headers['set-cookie'][0],/; Secure/);
+  await s.agent.get('/api/auth/session').expect(200);
+  const absolute=login.body.expiresAt;
+  s.advance(29*60000); const refreshed=await s.agent.post('/api/auth/activity').send({}).expect(200);
+  assert.equal(refreshed.body.expiresAt,absolute); assert.ok(refreshed.body.idleExpiresAt>login.body.idleExpiresAt);
+  s.advance(29*60000); await s.agent.get('/api/auth/session').expect(200);
+  s.advance(60001); await s.agent.get('/api/auth/session').expect(401);
+  const active=setup(t,{devMode:true,sessionMs:8*3600000,idleMs:30*60000});
+  await active.agent.post('/api/auth/login').send({email:'student_123456@aitpune.edu.in',role:'student'}).expect(200);
+  for(let i=0;i<16;i++){active.advance(29*60000);await active.agent.post('/api/auth/activity').send({}).expect(200)}
+  active.advance(16*60000+1);await active.agent.get('/api/auth/session').expect(401);
+});
+test('cookie Secure attribute follows configured HTTPS origin', async t=>{
+  const s=setup(t,{devMode:true,origin:'https://college.example'});
+  const login=await s.agent.post('/api/auth/login').send({email:'student_123456@aitpune.edu.in',role:'student'}).expect(200);
+  assert.match(login.headers['set-cookie'][0],/; Secure/);
+});

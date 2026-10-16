@@ -3,14 +3,12 @@ import { BrowserRouter, Navigate, NavLink, Route, Routes, useNavigate, useParams
 import './App.css'
 import Student from './Student'
 import Logo from './Logo'
+import { api } from './api'
+import { useSession } from './session'
+import SessionProvider from './SessionProvider'
 
-async function api(path, body) {
-  const response = await fetch(`/api${path}`, { credentials: 'same-origin', ...(body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}) })
-  const data = await response.json()
-  if (!response.ok) throw Object.assign(new Error(data.error || 'Request failed. Please try again.'), { status: response.status, ...data })
-  return data
-}
 function Login({ domain, directLogin }) {
+  const { signIn } = useSession()
   const { role } = useParams()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -37,7 +35,7 @@ function Login({ domain, directLogin }) {
     if (!validEmail || pending.current) return
     pending.current = true; setBusy(true); setError('')
     try {
-      if (directLogin) { await api('/auth/login', { email, role }); navigate(`/${role}/dashboard`, { replace: true }); return }
+      if (directLogin) { await signIn('/auth/login', { email, role }); navigate(`/${role}/dashboard`, { replace: true }); return }
       const data = await api('/auth/request-otp', { email, role })
       setChallenge(data); setDigits(Array(6).fill('')); setNow(Date.now())
       setTimeout(() => inputs.current[0]?.focus(), 0)
@@ -47,7 +45,7 @@ function Login({ domain, directLogin }) {
   async function verify(code) {
     if (pending.current || code.length !== 6) return
     pending.current = true; setBusy(true); setError('')
-    try { await api('/auth/verify-otp', { email, role, otp: code }); navigate(`/${role}/dashboard`, { replace: true }) }
+    try { await signIn('/auth/verify-otp', { email, role, otp: code }); navigate(`/${role}/dashboard`, { replace: true }) }
     catch (err) {
       setError(err.message)
       if (err.attemptsLeft !== undefined) setChallenge(value => ({ ...value, attemptsLeft: err.attemptsLeft }))
@@ -97,26 +95,15 @@ function Login({ domain, directLogin }) {
 function Dashboard({ student = false }) {
   const params = useParams()
   const role = student ? 'student' : params.role
+  const { user,status,error,logout,retry } = useSession()
   const navigate = useNavigate()
-  const [user, setUser] = useState(null)
-  const [error, setError] = useState('')
-  useEffect(() => {
-    let active = true
-    async function check() {
-      try {
-        const data = await api('/auth/session')
-        if (!active) return
-        if (data.user.role !== role) { navigate(`/${data.user.role}/dashboard`, { replace: true }); return }
-        await api(`/${role}/dashboard`)
-        if (active) { setUser(data.user); setError('') }
-      } catch (err) { if (active) { if (err.status === 401) navigate(`/login/${role}`, { replace: true }); else setError(err.message) } }
-    }
-    void check()
-    const timer = setInterval(check, 15000)
-    return () => { active = false; clearInterval(timer) }
-  }, [role, navigate])
-  if (user && role === 'student') return <Student user={user} />
-  return <main className="dashboard"><p className="eyebrow">SMART LEAVE / {role}</p><h1>{user ? `Welcome, ${user.name}` : 'Checking your session…'}</h1><p>{user?.email}</p><p>Your {role} dashboard will live here.</p>{error && <p role="alert" className="error">{error}</p>}<button onClick={async () => { try { await api('/auth/logout', {}); navigate(`/login/${role}`, { replace: true }) } catch (err) { setError(err.message) } }}>Sign out</button></main>
+  const [actionError,setActionError] = useState('')
+  if(status === 'loading') return <p role="status">Checking your session…</p>
+  if(status === 'error') return <p role="alert">{error} <button onClick={retry}>Retry</button></p>
+  if(!user) return <Navigate to={`/login/${role}`} replace />
+  if(user.role!==role) return <Navigate to={`/${user.role}/dashboard`} replace />
+  if(role==='student') return <Student user={user} />
+  return <main className="dashboard"><p className="eyebrow">SMART LEAVE / {role}</p><h1>Welcome, {user.name}</h1><p>{user.email}</p><p>Your {role} dashboard will live here.</p>{(error || actionError) && <p role="alert" className="error">{actionError || error}</p>}<button onClick={async()=>{try{await logout();navigate(`/login/${role}`,{replace:true})}catch(e){setActionError(e.message)}}}>Sign out</button></main>
 }
 function App() {
   const [directLogin, setDirectLogin] = useState(false)
@@ -125,7 +112,7 @@ function App() {
   useEffect(() => { api('/auth/config').then(data => { setDomain(data.domain); setDirectLogin(!!data.directLogin) }).catch(() => setError('Unable to connect. Check the server and reload this page.')) }, [])
   if (error) return <p role="alert">{error}</p>
   if (!domain) return <p role="status">Connecting to Smart Leave…</p>
-  return <BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} directLogin={directLogin} />} /><Route path="/applications/:id" element={<StudentGuard />} /><Route path="/student/*" element={<StudentGuard />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
+  return <SessionProvider><BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} directLogin={directLogin} />} /><Route path="/applications/:id" element={<StudentGuard />} /><Route path="/student/*" element={<StudentGuard />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter></SessionProvider>
 }
 function StudentGuard() { return <Dashboard student /> }
 function RoleLogin({ domain, directLogin }) { const { role } = useParams(); return <Login key={role} domain={domain} directLogin={directLogin} /> }

@@ -56,3 +56,33 @@ test('student submits an urgent leave without proof and sees its tracker', async
   expect(screen.getAllByText('Awaiting signature').length).toBeGreaterThan(0)
   expect(window.location.pathname).toBe('/applications/abc')
 })
+test('protected routes wait for the cached session and unrelated 401 stays inline', async()=>{
+  window.history.replaceState({},'','/student/dashboard')
+  let resolveSession
+  const session=new Promise(resolve=>{resolveSession=resolve})
+  vi.stubGlobal('fetch',vi.fn(async url=>{
+    if(url.endsWith('/session'))return {ok:true,json:async()=>session}
+    if(url.endsWith('/config'))return {ok:true,json:async()=>({domain:'aitpune.edu.in'})}
+    if(url.endsWith('/activity'))return {ok:true,json:async()=>({idleExpiresAt:Date.now()+1800000})}
+    return {ok:false,status:401,json:async()=>({error:'Home summary unavailable'})}
+  }))
+  render(<App />)
+  await screen.findByText('Checking your session…')
+  expect(window.location.pathname).toBe('/student/dashboard')
+  resolveSession({user:{name:'Student',role:'student',email:'student_123456@aitpune.edu.in'}})
+  await screen.findByText(/Home summary unavailable/)
+  expect(window.location.pathname).toBe('/student/dashboard')
+  const user=userEvent.setup();await user.click(screen.getAllByRole('link',{name:'Profile',exact:true})[0])
+  await screen.findByText('Your profile')
+  expect(fetch.mock.calls.filter(([url])=>url.endsWith('/session')).length).toBe(1)
+})
+test('logout clears cached session and returns to login',async()=>{
+  window.history.replaceState({},'','/student/profile')
+  mock(url=>url.endsWith('/config')?{domain:'aitpune.edu.in',directLogin:true}:url.endsWith('/logout')?{message:'Signed out'}:{user:{role:'student',name:'Student',email:'student_123456@aitpune.edu.in'}})
+  render(<App />);await screen.findByText('Your profile');const user=userEvent.setup()
+  await user.click(screen.getByLabelText('Account menu'))
+  await user.click(screen.getByRole('button',{name:'Logout'}))
+  await screen.findByLabelText('College email address')
+  expect(window.location.pathname).toBe('/login/student')
+  expect(fetch.mock.calls.some(([url])=>url.endsWith('/logout'))).toBe(true)
+})

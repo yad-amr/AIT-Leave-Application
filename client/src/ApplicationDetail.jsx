@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import './ApplicationDetail.css'
 const roles = { class_teacher: 'Class Teacher / Counselor', hod: 'HOD', warden: 'Warden', director: 'Director' }
 const formatDate = value => value ? new Date(value).toLocaleString() : 'Not yet decided'
@@ -8,12 +8,11 @@ const icons = { APPROVED: '✓', REJECTED: '×', CURRENT: '●', PENDING: '○',
 const fieldLabels = { leave_type: 'Leave type', from_date: 'From date', to_date: 'To date', days: 'Number of days', reason: 'Reason', out_at: 'Departure', return_at: 'Expected return', destination: 'Destination', contact: 'Contact number' }
 export default function ApplicationDetail({ id, api }) {
   const [data,setData] = useState(null), [error,setError] = useState(null), [version,setVersion] = useState(0), [busy,setBusy] = useState(false), [confirm,setConfirm] = useState(false)
-  const navigate = useNavigate()
   useEffect(() => {
     let active = true
-    api(`/applications/${id}`).then(value => { if(active) { setData(value); setError(null) } }).catch(e => { if(active) { if(e.status === 401) navigate('/login/student'); else setError(e) } })
+    api(`/applications/${id}`).then(value => { if(active) { setData(value); setError(null) } }).catch(e => { if(active) { setError(e) } })
     return () => { active = false }
-  }, [id,api,version,navigate])
+  }, [id,api,version])
   if (!data && error) return <section className="student-section"><h1>{error.status === 404 ? 'Application not found' : 'Unable to load application'}</h1><p>{error.status === 404 ? 'This application could not be found.' : error.message}</p><Link to="/student/dashboard">← Back home</Link>{error.status !== 404 && <button onClick={() => { setError(null); setVersion(v=>v+1) }}>Retry</button>}</section>
   if (!data) return <section className="student-section detail-skeleton" role="status" aria-label="Loading application"><div /><div /><div /><span>Loading application…</span></section>
   const steps = data.steps
@@ -22,7 +21,7 @@ export default function ApplicationDetail({ id, api }) {
   const canCancel = data.can_cancel ?? (['SUBMITTED','DRAFT'].includes(data.status) && !steps.some(s=>s.decision))
   const finalDate = steps.at(-1)?.decided_at
   const nodes = [{ role:'submitted', name:'Submitted', display_state:'APPROVED' }, ...steps, { role:'complete', name:'Approved', display_state:approved ? 'APPROVED' : cancelled || rejected ? 'STOPPED' : 'PENDING' }]
-  async function cancel() { setBusy(true); try { const value=await api(`/applications/${id}/cancel`,{}); setData(value); setConfirm(false); setError(null) } catch(e) { setError(e); if(e.status === 401) navigate('/login/student') } finally { setBusy(false) } }
+  async function cancel() { setBusy(true); try { const value=await api(`/applications/${id}/cancel`,{}); setData(value); setConfirm(false); setError(null) } catch(e) { setError(e) } finally { setBusy(false) } }
   return <section className="student-section application-detail">
     <Link to="/student/dashboard">← Back home</Link>
     <header className="detail-header"><div><p className="eyebrow">APPLICATION STATUS</p><h1>{data.type === 'LEAVE' ? 'Leave' : 'Outpass'} application</h1><p className="reference">Reference: {data.id}</p><p>Submitted {formatDate(data.created_at)}</p></div><div><span className={`status ${data.status}`}>{data.status.replaceAll('_',' ')}</span> {data.is_urgent && <span className="urgent-badge">Urgent</span>}</div></header>
