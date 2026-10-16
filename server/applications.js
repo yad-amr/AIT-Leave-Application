@@ -44,7 +44,23 @@ function decide(app, user, body) {
   app.status = body.decision === 'REJECTED' ? 'REJECTED' : app.steps.every(s => s.decision === 'APPROVED') ? 'APPROVED' : 'IN_REVIEW';
   app.history.push({ event: `${step.role}: ${body.decision}`, actor_id: user.sub, timestamp: new Date() });
 }
-function present(doc) { const value = doc.toObject(); if (value.attachment?.data) delete value.attachment.data; value.id = String(value._id); value.current_step = ['SUBMITTED','IN_REVIEW'].includes(value.status) ? value.steps.find(s => !s.decision)?.role : null; return value; }
+function present(doc) {
+  const value = doc.toObject();
+  if (value.attachment?.data) delete value.attachment.data;
+  value.id = String(value._id);
+  value.display_state = ['APPROVED','REJECTED','CANCELLED'].includes(value.status) ? value.status : 'IN_PROGRESS';
+  const stored = value.steps || [];
+  value.steps = CHAINS[value.type].map((role, i) => ({ ...stored.find(s => s.role === role), role, order: i + 1 }));
+  const next = value.steps.findIndex(s => !s.decision);
+  value.current_step_index = value.display_state === 'IN_PROGRESS' && next >= 0 ? next : null;
+  value.current_step = value.current_step_index === null ? null : value.steps[next].role;
+  value.steps = value.steps.map((step, i) => ({ ...step, display_state: step.decision === 'APPROVED' ? 'APPROVED' : step.decision === 'REJECTED' ? 'REJECTED' : value.display_state === 'CANCELLED' || value.display_state === 'REJECTED' ? 'STOPPED' : i === value.current_step_index ? 'CURRENT' : 'PENDING' }));
+  value.completed_steps = value.steps.filter(s => s.decision === 'APPROVED').length;
+  value.can_cancel = ['SUBMITTED','DRAFT'].includes(value.status) && !value.steps.some(s => s.decision);
+  value.history.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+  return value;
+}
+
 function routes(authenticated) {
   const router = express.Router(); router.use(authenticated);
   const student = (req,res,next) => req.user.role === 'student' ? next() : res.status(403).json({ error: 'Student access required.' });
@@ -106,4 +122,4 @@ function routes(authenticated) {
   router.use((error,req,res,next) => { if (error instanceof multer.MulterError) return res.status(400).json({ error: 'Upload one PDF, JPG or PNG up to 5 MB.' }); if (error.status) return res.status(error.status).json({ error: error.message }); next(error); });
   return router;
 }
-module.exports = { routes, validate, validateFile, decide, CHAINS };
+module.exports = { routes, validate, validateFile, decide, CHAINS, present };

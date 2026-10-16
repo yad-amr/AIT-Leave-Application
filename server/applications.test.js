@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const request = require('supertest');
 const { createApp } = require('./auth');
-const { validate, validateFile, decide, CHAINS } = require('./applications');
+const { validate, validateFile, decide, CHAINS, present } = require('./applications');
 const Application = require('./Application');
 const Approver = require('./Approver');
 test('validation requires reason, accepts optional proof and rejects invalid files and dates', () => {
@@ -36,15 +36,17 @@ test('API: sequential approvals, ownership, urgent visibility, files, cancellati
   for (const u of users) { const agent = request.agent(app); await agent.post('/api/auth/request-otp').send({ email:u.email, role:u.role }).expect(200); await agent.post('/api/auth/verify-otp').send({ email:u.email, role:u.role, otp:codes.get(u.email) }).expect(200); agents.push(agent); }
   const student = agents[0], fields = { reason: 'Family appointment tomorrow', leave_type:'Personal', from_date:'2026-10-20', to_date:'2026-10-21', is_urgent: true, ...selections };
   const created = (await student.post('/api/applications/leave').send(fields).expect(201)).body; const path = `/api/applications/${created.id}`;
-  assert.equal(created.is_urgent,true); assert.equal(created.fields.days,2);
-  await agents[1].get(path).expect(404); await agents[1].post(path+'/cancel').send({}).expect(404);
+  assert.equal(created.current_step_index,0); assert.equal(created.display_state,'IN_PROGRESS'); assert.equal(created.steps.length,4); assert.equal(created.is_urgent,true); assert.equal(created.fields.days,2);
+  const denied = await agents[1].get(path).expect(404);
+  assert.deepEqual(denied.body,(await student.get('/api/applications/not-an-id').expect(404)).body);
+  assert.deepEqual(denied.body,(await student.get('/api/applications/000000000000000000000000').expect(404)).body); await agents[1].post(path+'/cancel').send({}).expect(404);
   await agents[1].get(path+'/proof').expect(404);
   assert.equal((await student.get('/api/applications?urgent=true')).body.applications[0].is_urgent,true);
   assert.equal((await student.get('/api/home/summary')).body.urgent[0].id,created.id);
   const decision = { decision:'APPROVED', signature_data:'Demo Signer' };
   await agents[3].post(path+'/approvals').send(decision).expect(403);
   await student.post(path+'/approvals').send(decision).expect(403);
-  for(let i=2;i<6;i++) { const result = await agents[i].post(path+'/approvals').send(decision).expect(200); assert.equal(result.body.status,i===5?'APPROVED':'IN_REVIEW'); if(i===2) await student.post(path+'/cancel').send({}).expect(400); }
+  for(let i=2;i<6;i++) { const result = await agents[i].post(path+'/approvals').send(decision).expect(200); assert.equal(result.body.status,i===5?'APPROVED':'IN_REVIEW'); assert.equal(result.body.current_step_index,i===5?null:i-1); if(i===2) await student.post(path+'/cancel').send({}).expect(400); }
   const detail = (await student.get(path)).body; assert.equal(detail.history.length,5); assert.equal(detail.steps.length,4);
   const cancel = (await student.post('/api/applications/leave').send(fields)).body;
   await student.post(`/api/applications/${cancel.id}/cancel`).send({}).expect(200);
@@ -90,4 +92,26 @@ test('directory selections, identity checks, inactive approvers and rerunnable s
   await student.post('/api/applications/outpass').send({...outpass,...selected}).expect(400);
   const result = (await student.post('/api/applications/outpass').send({...outpass,warden_id:selected.warden_id}).expect(201)).body;
   assert.equal(result.steps.length,1); assert.equal(result.steps[0].approver_id,selected.warden_id);
+});
+
+test('presentation derives ordered chains and states for every approval position and terminal status', () => {
+  for (const type of ['LEAVE','OUTPASS']) {
+    const roles = CHAINS[type];
+    for (let count=0;count<=roles.length;count++) {
+      const steps=roles.map((role,i)=>({role,decision:i<count?'APPROVED':undefined})).reverse();
+      const result=present(new Application({student_id:'student',type,status:count===roles.length?'APPROVED':count?'IN_REVIEW':'SUBMITTED',steps,history:[]}));
+      assert.deepEqual(result.steps.map(s=>s.role),roles);
+      assert.equal(result.current_step_index,count===roles.length?null:count);
+      assert.equal(result.can_cancel,count===0);
+      assert.deepEqual(result.steps.map(s=>s.display_state),roles.map((r,i)=>i<count?'APPROVED':i===count?'CURRENT':'PENDING'));
+    }
+    for(let reject=0;reject<roles.length;reject++) {
+      const result=present(new Application({student_id:'student',type,status:'REJECTED',steps:roles.map((role,i)=>({role,decision:i<reject?'APPROVED':i===reject?'REJECTED':undefined})),history:[]}));
+      assert.equal(result.current_step_index,null); assert.equal(result.can_cancel,false);
+      assert.deepEqual(result.steps.map(s=>s.display_state),roles.map((r,i)=>i<reject?'APPROVED':i===reject?'REJECTED':'STOPPED'));
+    }
+    const cancelled=present(new Application({student_id:'student',type,status:'CANCELLED',steps:[],history:[]}));
+    assert.equal(cancelled.display_state,'CANCELLED'); assert.equal(cancelled.current_step_index,null); assert.equal(cancelled.can_cancel,false);
+    assert.ok(cancelled.steps.every(s=>s.display_state==='STOPPED'));
+  }
 });
