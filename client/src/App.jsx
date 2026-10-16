@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import './App.css'
+import Student from './Student'
 
 async function api(path, body) {
   const response = await fetch(`/api${path}`, { credentials: 'same-origin', ...(body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}) })
@@ -91,8 +92,9 @@ function Login({ domain }) {
     </div></section>
   </main>
 }
-function Dashboard() {
-  const { role } = useParams()
+function Dashboard({ student = false }) {
+  const params = useParams()
+  const role = student ? 'student' : params.role
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [error, setError] = useState('')
@@ -111,6 +113,7 @@ function Dashboard() {
     const timer = setInterval(check, 15000)
     return () => { active = false; clearInterval(timer) }
   }, [role, navigate])
+  if (user && role === 'student') return <Student user={user} />
   return <main className="dashboard"><p className="eyebrow">SMART LEAVE / {role}</p><h1>{user ? `Welcome, ${user.name}` : 'Checking your session…'}</h1><p>{user?.email}</p><p>Your {role} dashboard will live here.</p>{error && <p role="alert" className="error">{error}</p>}<button onClick={async () => { try { await api('/auth/logout', {}); navigate(`/login/${role}`, { replace: true }) } catch (err) { setError(err.message) } }}>Sign out</button></main>
 }
 function App() {
@@ -119,7 +122,8 @@ function App() {
   useEffect(() => { api('/auth/config').then(data => setDomain(data.domain)).catch(() => setError('Unable to connect. Check the server and reload this page.')) }, [])
   if (error) return <p role="alert">{error}</p>
   if (!domain) return <p role="status">Connecting to Smart Leave…</p>
-  return <BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
+  return <BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} />} /><Route path="/student/*" element={<StudentGuard />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
 }
+function StudentGuard() { return <Dashboard student /> }
 function RoleLogin({ domain }) { const { role } = useParams(); return <Login key={role} domain={domain} /> }
 export default App

@@ -63,3 +63,46 @@ npm run build
 ```
 
 Tests cover domain validation, OTP expiry, five-attempt lock and recovery, resend protection, single-use codes, email/IP request limits, student/faculty API protection, unknown users, logout revocation, expiry redirects, frontend role guards, and six-digit paste with auto-submit. Real SMTP delivery requires your provider credentials and was not exercised by these tests.
+
+## Student leave and outpass portal
+
+After student OTP sign-in, `/student/dashboard` displays the responsive home page. Navigation includes applications, outpass, and profile. Leave and outpass forms submit to the existing same-origin API. Application details show signatures, comments, rejection reasons, and the audit trail. Active urgent requests appear on the home page; lists put urgent requests first.
+
+Start the configured project with **`npm run dev`**. Initial installation remains `npm run setup`; retain your existing `server/.env`. Development automatically seeds the following accounts at `COLLEGE_DOMAIN` (default `aitpune.edu.in`):
+
+| Account | Sign-in page | Approval role |
+| --- | --- | --- |
+| `student_123456@aitpune.edu.in` | `/login/student` | Student |
+| `class.teacher@aitpune.edu.in` | `/login/faculty` | Class Teacher / Counselor |
+| `hod@aitpune.edu.in` | `/login/faculty` | HOD |
+| `warden@aitpune.edu.in` | `/login/faculty` | Warden |
+| `director@aitpune.edu.in` | `/login/faculty` | Director |
+
+Each uses email OTP, with codes in the server terminal only when local `DEV_MODE=true`. Existing faculty accounts remain available. Approver dashboards remain outside scope. To demo approvals, sign in as the appropriate approver in a separate browser profile, then use its browser console on the app origin:
+
+```js
+await fetch('/api/applications/APPLICATION_ID/approvals', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ decision: 'APPROVED', signature_data: 'Demo Signer', comment: 'Reviewed' })
+}).then(r => r.json())
+```
+
+Replace `APPLICATION_ID` with the ID from the student's details URL. Sign as Class Teacher, HOD, Warden, then Director for leave; only Warden for outpass. Use `decision: 'REJECTED'` and a required rejection comment to stop the chain. Refresh student details to see updates. Home, list and detail data refresh every 15 seconds, as do session checks. Live push updates are not implemented.
+
+New endpoints (all prefixed `/api`):
+
+- `GET /home/summary`: own status counts, active urgent items, and recent applications.
+- `GET /leave-types`: active configurable choices, stored in the `leavetypes` collection.
+- `POST /applications/leave`: JSON or multipart fields `leave_type`, `from_date`, `to_date`, `reason`, `is_urgent`; optional multipart `proof`.
+- `POST /applications/outpass`: JSON fields `out_at`, `return_at`, `destination`, `contact`, `reason`, `is_urgent`.
+- `GET /applications?type=LEAVE&status=SUBMITTED&urgent=true`: own applications with optional filters.
+- `GET /applications/:id`: own detail and history.
+- `GET /applications/:id/proof`: authenticated owner-only download.
+- `POST /applications/:id/cancel`: only before any approval.
+- `POST /applications/:id/approvals`: current approver role only, with decision, typed signature, and comment.
+
+Architecture additions follow the existing stack: `server/Application.js` defines Mongoose application and leave-type models; `server/applications.js` holds validation, data-driven chains, API routes, and workflow transitions. Approval steps, private attachment bytes/metadata, and history are embedded in each application, allowing an atomic revision-checked workflow update without requiring MongoDB replica-set transactions. `client/src/Student.jsx` and `Student.css` provide the portal using existing React Router and plain CSS; the illustration is original inline SVG. Auth and user/seed code extend the existing session claims with a trusted approver role. No additional frontend framework or styling system is used.
+
+Assumptions and limitations: each role may sign any current request of that role; department/counselor assignment is not modeled. Dates for outpass are college-local wall times; leave days include both endpoints. Pending counts mean SUBMITTED. Signatures are typed names linked to the authenticated signer, timestamp, and application in the audit record: **these are not cryptographic PKI signatures**. Proofs are limited to 5 MB, checked for extension, MIME and file magic, and stored privately in MongoDB; production malware scanning and database encryption depend on deployment infrastructure. Each application stores one optional proof. Submission limits are per-IP, in memory, and reset on restart. The existing single-process session limitations still apply. Configure persistent MongoDB to retain application records.
+
+Tests additionally cover all approval steps, rejection at each leave step, warden-only outpasses, mandatory reasons and optional proof, urgent flags, student ownership, wrong-role signing, file type/size validation, cancellation rules, and frontend urgent leave submission through to its tracker. Run `npm test`, `npm --prefix client run lint`, and `npm run build`.

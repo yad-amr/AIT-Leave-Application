@@ -30,3 +30,24 @@ test('expired sessions redirect to matching login', async () => {
   render(<App />); await screen.findByLabelText('College email address')
   expect(window.location.pathname).toBe('/login/faculty')
 })
+test('student submits an urgent leave without proof and sees its tracker', async () => {
+  window.history.replaceState({}, '', '/student/apply/leave')
+  const application = { id: 'abc', type:'LEAVE', status:'SUBMITTED', is_urgent:true, current_step:'class_teacher', fields:{ reason:'A family appointment', leave_type:'Personal' }, steps:[{ role:'class_teacher' },{ role:'hod' },{ role:'warden' },{ role:'director' }], history:[] }
+  mock((url, options) => {
+    if (url.endsWith('/config')) return { domain:'aitpune.edu.in' }
+    if (url.endsWith('/session')) return { user:{ role:'student', name:'Student',email:'student_123456@aitpune.edu.in' } }
+    if (url.endsWith('/leave-types')) return { types:['Personal'] }
+    if (url.endsWith('/applications/leave')) { expect(options.body.get('is_urgent')).toBe('true'); expect(options.body.has('proof')).toBe(false); return application }
+    return application
+  })
+  render(<App />); const user = userEvent.setup()
+  await user.selectOptions(await screen.findByLabelText('Leave type'),'Personal')
+  await user.type(screen.getByLabelText('From date'),'2026-10-20')
+  await user.type(screen.getByLabelText('To date'),'2026-10-21')
+  await user.type(screen.getByLabelText('Reason'),'A family appointment')
+  await user.click(screen.getByRole('checkbox'))
+  await user.click(screen.getByRole('button',{name:'Submit leave →'}))
+  await screen.findByText('Leave application')
+  expect(screen.getByText('Awaiting signature')).toBeTruthy()
+  expect(window.location.pathname).toBe('/student/applications/abc')
+})
