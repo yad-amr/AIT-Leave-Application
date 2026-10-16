@@ -21,7 +21,11 @@ function Login({ domain }) {
   const inputs = useRef([])
   const pending = useRef(false)
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer) }, [])
-  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && email.trim().toLowerCase().split('@')[1] === domain
+  const template = role === 'student' ? `name_123456@${domain}` : `name@${domain}`
+  const emailError = role === 'student' ? `Use ${template} with a six-digit registration number.` : `Use ${template} for faculty sign-in.`
+  const localPattern = role === 'student' ? /^[a-z][a-z.-]*_\d{6}$/i : /^[a-z][a-z.-]*$/i
+  const parts = email.trim().toLowerCase().split('@')
+  const validEmail = parts.length === 2 && parts[1] === domain && localPattern.test(parts[0])
   if (!['student', 'faculty'].includes(role)) return <Navigate to="/login/student" replace />
   const cooldown = Math.max(0, Math.ceil(((challenge?.resendAt || 0) - now) / 1000))
   const remaining = Math.max(0, Math.ceil(((challenge?.expiresAt || 0) - now) / 1000))
@@ -61,8 +65,8 @@ function Login({ domain }) {
       <nav className="roles" aria-label="Sign-in role"><NavLink to="/login/student">Student</NavLink><NavLink to="/login/faculty">Faculty</NavLink></nav>
       <form onSubmit={send} aria-busy={busy}>
         <label htmlFor="email">College email address</label>
-        <input id="email" type="email" autoComplete="email" placeholder={`you@${domain}`} value={email} readOnly={!!challenge} onBlur={() => setTouched(true)} onChange={e => setEmail(e.target.value)} aria-invalid={touched && !validEmail} aria-describedby="email-help" required />
-        <p id="email-help" className={touched && !validEmail ? 'error' : 'hint'}>{touched && !validEmail ? `Enter a valid college email ending in @${domain}.` : `Use your official @${domain} Microsoft 365 email.`}</p>
+        <input id="email" type="email" autoComplete="email" placeholder={template} value={email} readOnly={!!challenge} onBlur={() => setTouched(true)} onChange={e => setEmail(e.target.value)} aria-invalid={touched && !validEmail} aria-describedby="email-help" required />
+        <p id="email-help" className={touched && !validEmail ? 'error' : 'hint'}>{touched && !validEmail ? emailError : `Use ${template}, your official Microsoft 365 email.`}</p>
         {!challenge && <button disabled={busy || !domain} type="submit">{busy ? 'Sending code…' : 'Send OTP →'}</button>}
         {challenge && <>
           <div className="otp-heading"><label id="otp-label">Enter your verification code</label><button className="text-button" type="button" disabled={busy} onClick={() => { setChallenge(null); setDigits(Array(6).fill('')); setError('') }}>Change email</button></div>

@@ -8,7 +8,7 @@ function config() {
     if (!Number.isFinite(value) || value < 1) throw new Error(`Invalid ${key}`);
     return value;
   };
-  const domain = (process.env.COLLEGE_DOMAIN || 'ait.edu').toLowerCase();
+  const domain = (process.env.COLLEGE_DOMAIN || 'aitpune.edu.in').toLowerCase();
   if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) throw new Error('Invalid COLLEGE_DOMAIN');
   const devMode = process.env.DEV_MODE === 'true' && !production;
   if (!devMode && (!process.env.SMTP_HOST || !process.env.SMTP_FROM)) throw new Error('Configure SMTP or explicitly set DEV_MODE=true locally.');

@@ -11,7 +11,11 @@ function createApp({ config, users, sendMail, now = Date.now }) {
   const limits = new Map();
   const sessions = new Map();
   const hash = value => crypto.createHmac('sha256', config.secret).update(value).digest();
-  const emailValid = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.split('@')[1] === config.domain;
+  const emailValid = (email, role) => {
+    const [local, domain] = email.split('@');
+    const pattern = role === 'student' ? /^[a-z][a-z.-]*_\d{6}$/i : /^[a-z][a-z.-]*$/i;
+    return email.split('@').length === 2 && domain === config.domain && pattern.test(local);
+  };
   const cookie = { httpOnly: true, secure: config.production, sameSite: 'strict', path: '/' };
   app.use(helmet(), express.json({ limit: '4kb' }), cookieParser());
   app.use('/api', (req, res, next) => {
@@ -34,7 +38,7 @@ function createApp({ config, users, sendMail, now = Date.now }) {
   }
   function identity(req, res, next) {
     const email = String(req.body.email || '').trim().toLowerCase();
-    if (!emailValid(email)) return res.status(400).json({ error: `Use your college email ending in @${config.domain}.` });
+    if (!emailValid(email, req.body.role)) return res.status(400).json({ error: req.body.role === 'student' ? `Use name_123456@${config.domain} with a six-digit registration number.` : `Use name@${config.domain} for faculty sign-in.` });
     if (!['student', 'faculty'].includes(req.body.role)) return res.status(400).json({ error: 'Select Student or Faculty.' });
     req.email = email;
     req.key = `${email}:${req.body.role}`;

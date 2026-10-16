@@ -17,7 +17,7 @@ Set `SESSION_SECRET` in `server/.env` to a random value of at least 32 character
 npm run dev
 ```
 
-Open http://localhost:5173/login/student or /login/faculty. With the demo domain `ait.edu`, use `student@ait.edu` or `faculty@ait.edu`. Copy the six-digit code from the **server terminal**. Only explicit local `DEV_MODE=true` permits console codes; production never prints them. This exception is solely for development without SMTP.
+Open http://localhost:5173/login/student or /login/faculty. With the demo domain `aitpune.edu.in`, use `student_123456@aitpune.edu.in` or `faculty@aitpune.edu.in`. Copy the six-digit code from the **server terminal**. Only explicit local `DEV_MODE=true` permits console codes; production never prints them. This exception is solely for development without SMTP.
 
 Without `MONGODB_URI`, local dev starts an ephemeral MongoDB and seeds sample student, faculty, and warden users. The first run may download a MongoDB binary and requires network access and a supported OS. The data disappears on restart. For persistent users, set `MONGODB_URI` and run `npm --prefix server run seed`. Dev startup also seeds missing demo users without overwriting existing records. Wardens exist in the model but have no login page in this scope.
 
@@ -27,7 +27,7 @@ See [server/.env.example](server/.env.example). Configuration is loaded from `se
 
 | Variable | Purpose |
 | --- | --- |
-| `COLLEGE_DOMAIN` | Exact allowed email domain; demo default `ait.edu`, replace with the actual Outlook/Microsoft 365 college domain. Subdomains are not implicitly accepted. |
+| `COLLEGE_DOMAIN` | Exact allowed email domain; default `aitpune.edu.in`. Students use `name_123456@aitpune.edu.in` (exactly six registration digits); faculty use `name@aitpune.edu.in`. Subdomains are not implicitly accepted. |
 | `SESSION_SECRET` | Required random secret, at least 32 characters; signs sessions and keys OTP hashes. |
 | `OTP_EXPIRY_SECONDS` | OTP validity, default 300 seconds. |
 | `SESSION_EXPIRY_SECONDS` | Session validity, default 28800 seconds. |
