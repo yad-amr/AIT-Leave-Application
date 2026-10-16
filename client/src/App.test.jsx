@@ -37,11 +37,16 @@ test('student submits an urgent leave without proof and sees its tracker', async
     if (url.endsWith('/config')) return { domain:'aitpune.edu.in' }
     if (url.endsWith('/session')) return { user:{ role:'student', name:'Student',email:'student_123456@aitpune.edu.in' } }
     if (url.endsWith('/leave-types')) return { types:['Personal'] }
-    if (url.endsWith('/applications/leave')) { expect(options.body.get('is_urgent')).toBe('true'); expect(options.body.has('proof')).toBe(false); return application }
+    if (url.endsWith('/approvers')) return { approvers: [{id:'c',role:'COUNSELOR',name:'Counselor A',department:'Computing'},{id:'h',role:'HOD',name:'HOD A',department:'Computing'},{id:'w',role:'WARDEN',name:'Warden A',department:'Hostel'},{id:'d',role:'DIRECTOR',name:'Director A',department:'Administration'}] }
+    if (url.endsWith('/applications/leave')) { expect(options.body.get('is_urgent')).toBe('true'); expect(options.body.get('class_teacher_id')).toBe('c'); expect(options.body.get('hod_id')).toBe('h'); expect(options.body.get('warden_id')).toBe('w'); expect(options.body.has('proof')).toBe(false); return application }
     return application
   })
   render(<App />); const user = userEvent.setup()
   await user.selectOptions(await screen.findByLabelText('Leave type'),'Personal')
+  expect(screen.getByRole('button',{name:'Submit leave →'}).disabled).toBe(true)
+  await user.selectOptions(screen.getByLabelText('Class Teacher / Counselor'),'c')
+  await user.selectOptions(screen.getByLabelText('HOD'),'h')
+  await user.selectOptions(screen.getByLabelText('Warden'),'w')
   await user.type(screen.getByLabelText('From date'),'2026-10-20')
   await user.type(screen.getByLabelText('To date'),'2026-10-21')
   await user.type(screen.getByLabelText('Reason'),'A family appointment')

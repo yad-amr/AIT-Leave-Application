@@ -62,7 +62,7 @@ function Login({ domain, directLogin }) {
   }
   const blocked = busy || !remaining || challenge?.attemptsLeft === 0
   return <main className="shell">
-    <aside className="intro"><a className="brand" href="/"><Logo /></a><div><p className="eyebrow">YOUR CAMPUS. CONNECTED.</p><h1>A little less paperwork.<br />A lot more possibility.</h1><p>One place for hostel leave and academic outpasses. Sign in with your college email to get started.</p></div><p className="footnote">Smart Leave Management System · AIT</p></aside>
+    <aside className="intro"><a className="brand" href="/"><Logo /></a><div><p className="eyebrow">YOUR CAMPUS. CONNECTED.</p><h1>A little less paperwork.<br /><span className="login-highlight">A lot more possibility.</span></h1><p>One place for hostel leave and academic outpasses. Sign in with your college email to get started.</p></div><p className="footnote">Smart Leave Management System · AIT</p></aside>
     <section className="panel" aria-labelledby="login-title"><div className="card">
       <p className="eyebrow">WELCOME BACK</p><h2 id="login-title">Sign in to Smart Leave</h2><p className="muted">{directLogin ? 'Development preview: sign in directly with your college email.' : 'Your college inbox is your key. No password needed.'}</p>
       <nav className="roles" aria-label="Sign-in role"><NavLink to="/login/student">Student</NavLink><NavLink to="/login/faculty">Faculty</NavLink></nav>

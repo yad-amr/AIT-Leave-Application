@@ -11,3 +11,14 @@
   .student-nav nav { order: 4; width: 100%; justify-content: center; flex-wrap: wrap; }
   .account { margin-left: auto; }
 }
+
+.student-nav nav, .student-nav .menu-toggle, .student-nav .account,
+.student-nav .account summary, .student-nav .account button, .student-nav .nav-apply {
+  font-size: var(--font-nav);
+  font-weight: 500;
+}
+.student-nav .account summary { width: 40px; height: 40px; }
+@media (min-width: 1100px) {
+  .student-nav { gap: 18px; }
+  .student-nav nav { flex-wrap: nowrap; gap: 18px; }
+}

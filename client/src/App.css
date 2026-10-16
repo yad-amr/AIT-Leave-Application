@@ -6,3 +6,45 @@
 @media (min-width: 761px) and (max-width: 1000px) {
   .intro h1 { font-size: var(--font-hero-tablet); }
 }
+
+.roles a { font-size: var(--font-nav); font-weight: 500; }
+
+/* Login uses the same surfaces, blue controls and type scale as the student portal. */
+.shell {
+  --accent: #3366ff;
+  --text: #141725;
+  --muted: #626675;
+  --line: #ced2de;
+  --field: #fff;
+  --error: #a52323;
+  color: var(--text);
+  color-scheme: light;
+  background: linear-gradient(125deg, #eadffc, #b4c7fc);
+  border-radius: 24px;
+  overflow: clip;
+}
+.intro, .panel { background: #eceef1; }
+.intro { color: var(--text); padding: 48px 8%; gap: 64px; }
+.intro .eyebrow { color: #60677c; }
+.intro h1 { font-weight: 800; line-height: 1.05; letter-spacing: -1.5px; }
+.intro .login-highlight { color: var(--accent); }
+.intro p:not(.eyebrow) { color: var(--muted); line-height: 1.5; }
+.intro .logo-wordmark { color: #202737; }
+.panel { padding: 48px 32px; }
+.panel .card {
+  max-width: 474px;
+  padding: 32px;
+  border: 1px solid #dce0e8;
+  border-radius: 20px;
+  background: #f9fafc;
+}
+.card > .eyebrow { color: #60677c; }
+.card h2 { font-weight: 750; letter-spacing: -.6px; }
+.card button:not(.text-button):hover, .roles .active:hover { background: #254ed0; }
+.card .text-button { color: var(--text); }
+@media (max-width: 760px) {
+  .shell { border-radius: 10px; }
+  .intro { padding: 28px; gap: 40px; }
+  .panel { padding: 24px 20px 40px; }
+  .panel .card { padding: 24px; }
+}
