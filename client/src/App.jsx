@@ -1,122 +1,121 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useEffect, useRef, useState } from 'react'
+import { BrowserRouter, Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+async function api(path, body) {
+  const response = await fetch(`/api${path}`, { credentials: 'same-origin', ...(body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}) })
+  const data = await response.json()
+  if (!response.ok) throw Object.assign(new Error(data.error || 'Request failed. Please try again.'), { status: response.status, ...data })
+  return data
 }
-
+function Login({ domain }) {
+  const { role } = useParams()
+  const navigate = useNavigate()
+  const [email, setEmail] = useState('')
+  const [digits, setDigits] = useState(Array(6).fill(''))
+  const [challenge, setChallenge] = useState(null)
+  const [now, setNow] = useState(Date.now())
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [touched, setTouched] = useState(false)
+  const inputs = useRef([])
+  const pending = useRef(false)
+  useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer) }, [])
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && email.trim().toLowerCase().split('@')[1] === domain
+  if (!['student', 'faculty'].includes(role)) return <Navigate to="/login/student" replace />
+  const cooldown = Math.max(0, Math.ceil(((challenge?.resendAt || 0) - now) / 1000))
+  const remaining = Math.max(0, Math.ceil(((challenge?.expiresAt || 0) - now) / 1000))
+  async function send(event) {
+    event.preventDefault()
+    setTouched(true)
+    if (!validEmail || pending.current) return
+    pending.current = true; setBusy(true); setError('')
+    try {
+      const data = await api('/auth/request-otp', { email, role })
+      setChallenge(data); setDigits(Array(6).fill('')); setNow(Date.now())
+      setTimeout(() => inputs.current[0]?.focus(), 0)
+    } catch (err) { setError(err.message) }
+    finally { pending.current = false; setBusy(false) }
+  }
+  async function verify(code) {
+    if (pending.current || code.length !== 6) return
+    pending.current = true; setBusy(true); setError('')
+    try { await api('/auth/verify-otp', { email, role, otp: code }); navigate(`/${role}/dashboard`, { replace: true }) }
+    catch (err) {
+      setError(err.message)
+      if (err.attemptsLeft !== undefined) setChallenge(value => ({ ...value, attemptsLeft: err.attemptsLeft }))
+      setDigits(Array(6).fill('')); inputs.current[0]?.focus()
+    } finally { pending.current = false; setBusy(false) }
+  }
+  function change(index, value) {
+    if (!/^\d*$/.test(value)) return
+    const next = [...digits]; next[index] = value.slice(-1); setDigits(next)
+    if (value && index < 5) inputs.current[index + 1]?.focus()
+    if (next.every(Boolean)) void verify(next.join(''))
+  }
+  const blocked = busy || !remaining || challenge?.attemptsLeft === 0
+  return <main className="shell">
+    <aside className="intro"><a className="brand" href="/">SL <span>SMART LEAVE</span></a><div><p className="eyebrow">YOUR CAMPUS. CONNECTED.</p><h1>A little less paperwork.<br />A lot more possibility.</h1><p>One place for hostel leave and academic outpasses. Sign in with your college email to get started.</p></div><p className="footnote">Smart Leave Management System · AIT</p></aside>
+    <section className="panel" aria-labelledby="login-title"><div className="card">
+      <p className="eyebrow">WELCOME BACK</p><h2 id="login-title">Sign in to Smart Leave</h2><p className="muted">Your college inbox is your key. No password needed.</p>
+      <nav className="roles" aria-label="Sign-in role"><NavLink to="/login/student">Student</NavLink><NavLink to="/login/faculty">Faculty</NavLink></nav>
+      <form onSubmit={send} aria-busy={busy}>
+        <label htmlFor="email">College email address</label>
+        <input id="email" type="email" autoComplete="email" placeholder={`you@${domain}`} value={email} readOnly={!!challenge} onBlur={() => setTouched(true)} onChange={e => setEmail(e.target.value)} aria-invalid={touched && !validEmail} aria-describedby="email-help" required />
+        <p id="email-help" className={touched && !validEmail ? 'error' : 'hint'}>{touched && !validEmail ? `Enter a valid college email ending in @${domain}.` : `Use your official @${domain} Microsoft 365 email.`}</p>
+        {!challenge && <button disabled={busy || !domain} type="submit">{busy ? 'Sending code…' : 'Send OTP →'}</button>}
+        {challenge && <>
+          <div className="otp-heading"><label id="otp-label">Enter your verification code</label><button className="text-button" type="button" disabled={busy} onClick={() => { setChallenge(null); setDigits(Array(6).fill('')); setError('') }}>Change email</button></div>
+          <p className="hint">If eligible, a code has been sent to your college inbox.</p>
+          <div className="digits" role="group" aria-labelledby="otp-label" onPaste={event => {
+            event.preventDefault(); if (blocked) return
+            const code = event.clipboardData.getData('text').trim()
+            if (/^\d{6}$/.test(code)) { setDigits(code.split('')); inputs.current[5]?.focus(); void verify(code) }
+          }}>
+            {digits.map((digit, index) => <input key={index} ref={element => { inputs.current[index] = element }} aria-label={`Code digit ${index + 1}`} inputMode="numeric" autoComplete={index === 0 ? 'one-time-code' : 'off'} value={digit} disabled={blocked} onChange={e => change(index, e.target.value)} onKeyDown={e => {
+              if (e.key === 'Backspace' && !digit && index) inputs.current[index - 1]?.focus()
+              if (e.key === 'ArrowLeft' && index) inputs.current[index - 1]?.focus()
+              if (e.key === 'ArrowRight' && index < 5) inputs.current[index + 1]?.focus()
+            }} />)}
+          </div>
+          <p className="hint">{remaining ? `Code expires in ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}` : 'Code expired. Request a new code.'} · {challenge.attemptsLeft} attempts left</p>
+          <button type="button" disabled={blocked || digits.some(d => !d)} onClick={() => verify(digits.join(''))}>{busy ? 'Please wait…' : 'Verify & sign in →'}</button>
+          <button className="text-button resend" type="submit" disabled={busy || cooldown > 0}>{cooldown ? `Resend code in ${cooldown}s` : 'Resend code'}</button>
+        </>}
+        {error && <p role="alert" className="error">{error}</p>}
+      </form><p className="security">Protected access · For authorized college members</p>
+    </div></section>
+  </main>
+}
+function Dashboard() {
+  const { role } = useParams()
+  const navigate = useNavigate()
+  const [user, setUser] = useState(null)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    let active = true
+    async function check() {
+      try {
+        const data = await api('/auth/session')
+        if (!active) return
+        if (data.user.role !== role) { navigate(`/${data.user.role}/dashboard`, { replace: true }); return }
+        await api(`/${role}/dashboard`)
+        if (active) { setUser(data.user); setError('') }
+      } catch (err) { if (active) { if (err.status === 401) navigate(`/login/${role}`, { replace: true }); else setError(err.message) } }
+    }
+    void check()
+    const timer = setInterval(check, 15000)
+    return () => { active = false; clearInterval(timer) }
+  }, [role, navigate])
+  return <main className="dashboard"><p className="eyebrow">SMART LEAVE / {role}</p><h1>{user ? `Welcome, ${user.name}` : 'Checking your session…'}</h1><p>{user?.email}</p><p>Your {role} dashboard will live here.</p>{error && <p role="alert" className="error">{error}</p>}<button onClick={async () => { try { await api('/auth/logout', {}); navigate(`/login/${role}`, { replace: true }) } catch (err) { setError(err.message) } }}>Sign out</button></main>
+}
+function App() {
+  const [domain, setDomain] = useState('')
+  const [error, setError] = useState('')
+  useEffect(() => { api('/auth/config').then(data => setDomain(data.domain)).catch(() => setError('Unable to connect. Check the server and reload this page.')) }, [])
+  if (error) return <p role="alert">{error}</p>
+  if (!domain) return <p role="status">Connecting to Smart Leave…</p>
+  return <BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
+}
+function RoleLogin({ domain }) { const { role } = useParams(); return <Login key={role} domain={domain} /> }
 export default App

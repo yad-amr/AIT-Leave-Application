@@ -1,0 +1,10 @@
+{
+  "name": "smart-leave",
+  "private": true,
+  "scripts": {
+    "setup": "npm --prefix server ci && npm --prefix client ci",
+    "dev": "node dev.js",
+    "test": "npm --prefix server test && npm --prefix client test",
+    "build": "npm --prefix client run build"
+  }
+}
