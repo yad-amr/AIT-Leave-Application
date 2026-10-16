@@ -53,6 +53,6 @@ test('student submits an urgent leave without proof and sees its tracker', async
   await user.click(screen.getByRole('checkbox'))
   await user.click(screen.getByRole('button',{name:'Submit leave →'}))
   await screen.findByText('Leave application')
-  expect(screen.getByText('Awaiting signature')).toBeTruthy()
-  expect(window.location.pathname).toBe('/student/applications/abc')
+  expect(screen.getAllByText('Awaiting signature').length).toBeGreaterThan(0)
+  expect(window.location.pathname).toBe('/applications/abc')
 })

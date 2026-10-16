@@ -125,7 +125,7 @@ function App() {
   useEffect(() => { api('/auth/config').then(data => { setDomain(data.domain); setDirectLogin(!!data.directLogin) }).catch(() => setError('Unable to connect. Check the server and reload this page.')) }, [])
   if (error) return <p role="alert">{error}</p>
   if (!domain) return <p role="status">Connecting to Smart Leave…</p>
-  return <BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} directLogin={directLogin} />} /><Route path="/student/*" element={<StudentGuard />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
+  return <BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} directLogin={directLogin} />} /><Route path="/applications/:id" element={<StudentGuard />} /><Route path="/student/*" element={<StudentGuard />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
 }
 function StudentGuard() { return <Dashboard student /> }
 function RoleLogin({ domain, directLogin }) { const { role } = useParams(); return <Login key={role} domain={domain} directLogin={directLogin} /> }

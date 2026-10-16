@@ -87,7 +87,7 @@ await fetch('/api/applications/APPLICATION_ID/approvals', {
 }).then(r => r.json())
 ```
 
-Replace `APPLICATION_ID` with the ID from the student's details URL. Sign as Class Teacher, HOD, Warden, then Director for leave; only Warden for outpass. Use `decision: 'REJECTED'` and a required rejection comment to stop the chain. Refresh student details to see updates. Home, list and detail data refresh every 15 seconds, as do session checks. Live push updates are not implemented.
+Replace `APPLICATION_ID` with the ID from the student's details URL. Sign as Class Teacher, HOD, Warden, then Director for leave; only Warden for outpass. Use `decision: 'REJECTED'` and a required rejection comment to stop the chain. Refresh student details to see updates. Home and list data refresh every 15 seconds, as do session checks; application details refresh on page reload. Live push updates are not implemented.
 
 New endpoints (all prefixed `/api`):
 
@@ -123,3 +123,12 @@ Leave submission now requires `class_teacher_id`, `hod_id`, and `warden_id` (dir
 Older applications without assigned approvers remain readable and cancellable under the existing cancellation rules, but cannot be signed by an arbitrary role holder. Cancel and resubmit an unsigned legacy request to select approvers. No approver dashboard or notifications are added.
 
 The shared logo is a flat blue rounded square with a white check; `Logo.jsx` renders the inline SVG and wordmark. SVG, 32px PNG and 180px Apple touch favicons use the same mark. Student navigation uses 18px medium-weight text, including the mobile drawer and account menu. Login uses the same blue, light-grey surfaces, typography and logo as the student home page.
+
+
+### Application status details
+
+Click an application row on Home or My Applications to open `/applications/:id`. The previous `/student/applications/:id` URLs remain supported by the same student guard. The page uses the existing session, API and CSS tokens. `ApplicationDetail.jsx` provides an ordered horizontal approval stepper (vertical below 768px), expandable step details, typed signature previews, status banners, summary, proof download, selected approvers, and chronological timeline. The timeline starts collapsed on mobile. Cancellation opens a native modal confirmation dialog and remains subject to the existing server-side restrictions. The detail page loads once; refresh to see new decisions. No push or live status subscription is added.
+
+The existing `GET /api/applications/:id` response now derives its ordered steps from the shared application-type chain and includes `current_step_index` (zero-based within the approver steps; null for terminal applications), `display_state` (`IN_PROGRESS`, `APPROVED`, `REJECTED`, `CANCELLED`), per-step `display_state` (`APPROVED`, `CURRENT`, `PENDING`, `REJECTED`, `STOPPED`), `completed_steps`, and `can_cancel`. List and summary responses share these fields, enabling matching mini progress bars. Signature previews remain typed names because this application only captures typed signatures. History remains embedded in the application document. Missing, invalid, and another student's application IDs all return the same 404 message.
+
+Files added: `client/src/ApplicationDetail.jsx`, `ApplicationDetail.css`, `ApplicationDetail.test.jsx`, and `MiniProgress.jsx`. Existing routing, student rows/forms, API presentation, and tests are extended. Run `npm run dev`; validate with `npm test`, `npm --prefix client run lint`, and `npm run build`.
