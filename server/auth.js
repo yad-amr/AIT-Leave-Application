@@ -17,7 +17,7 @@ function createApp({ config, users, sendMail, now = Date.now }) {
     return email.split('@').length === 2 && domain === config.domain && pattern.test(local);
   };
   const cookie = { httpOnly: true, secure: config.production, sameSite: 'strict', path: '/' };
-  app.use(helmet(), express.json({ limit: '4kb' }), cookieParser());
+  app.use(helmet(), express.json({ limit: '16kb' }), cookieParser());
   app.use('/api', (req, res, next) => {
     if (req.method !== 'GET' && req.headers.origin && req.headers.origin !== config.origin) return res.status(403).json({ error: 'Request rejected.' });
     next();
@@ -78,7 +78,7 @@ function createApp({ config, users, sendMail, now = Date.now }) {
       if (!user) return res.status(400).json({ error: 'Unable to sign in. Check your details or contact your college administrator.' });
       const sid = crypto.randomUUID();
       sessions.set(sid, now() + config.sessionMs);
-      const token = jwt.sign({ sub: String(user.id || user._id), email: user.email, role: user.role, name: user.name, sid }, config.secret, { expiresIn: Math.floor(config.sessionMs / 1000) });
+      const token = jwt.sign({ sub: String(user.id || user._id), email: user.email, role: user.role, name: user.name, approver_role: user.approver_role, sid }, config.secret, { expiresIn: Math.floor(config.sessionMs / 1000) });
       res.cookie('session', token, { ...cookie, maxAge: config.sessionMs });
       res.json({ user: { email: user.email, role: user.role, name: user.name } });
     } catch (error) { next(error); }
@@ -100,6 +100,7 @@ function createApp({ config, users, sendMail, now = Date.now }) {
     if (req.user.role !== role) return res.status(403).json({ error: 'This page is for a different role.' });
     res.json({ message: `Welcome to your ${role} dashboard.` });
   });
+  app.use('/api', require('./applications').routes(authenticated));
   app.use((error, req, res, next) => { // eslint-disable-line no-unused-vars
     res.status(error.type === 'entity.parse.failed' ? 400 : 500).json({ error: 'Unable to process your request. Please try again.' });
   });
