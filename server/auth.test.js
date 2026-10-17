@@ -4,11 +4,11 @@ const bcrypt = require('bcrypt')
 const request = require('supertest')
 const { createApp } = require('./auth')
 
-function setup(t) {
+function setup(t, { hostedOnLaptop = false } = {}) {
   let clock = Date.now()
-  const config = { secret: 'test-secret-that-is-at-least-32-characters', domain: 'aitpune.edu.in', sessionMs: 3600000, origin: 'http://localhost:5173', devMode: true, production: false }
+  const config = { secret: 'test-secret-that-is-at-least-32-characters', domain: 'aitpune.edu.in', sessionMs: 3600000, origin: 'http://localhost:5173', devMode: true, production: false, hostedOnLaptop }
   const records = [
-    { id: 'student-id', email: 'student_123456@aitpune.edu.in', role: 'student', name: 'Demo student', passwordHash: bcrypt.hashSync('StudentPass123!', 4) },
+    { id: 'student-id', email: 'student_123456@aitpune.edu.in', role: 'student', name: 'Demo student', college_id: hostedOnLaptop ? 'DEMO-240101' : 'STUDENT-240101', passwordHash: bcrypt.hashSync('StudentPass123!', 4) },
     { id: 'faculty-id', email: 'faculty@aitpune.edu.in', role: 'faculty', name: 'Demo faculty', passwordHash: bcrypt.hashSync('FacultyPass123!', 4) },
     { id: 'warden-id', email: 'beauty.das_wardengirlshostel@aitpune.edu.in', role: 'faculty', approvalRole: 'warden', name: 'Ms. Beauty Das', passwordHash: bcrypt.hashSync('FacultyPass123!', 4) },
   ]
@@ -40,6 +40,11 @@ test('wrong password, unknown account, and invalid email are rejected', async (t
   assert.equal((await state.login('unknown_123456@aitpune.edu.in')).status, 401)
   assert.equal((await state.login('student@gmail.com')).status, 400)
   assert.equal((await state.login('student_123456@aitpune.edu.in', 'short')).status, 400)
+})
+
+test('laptop public hosting rejects seeded demo accounts', async (t) => {
+  const state = setup(t, { hostedOnLaptop: true })
+  assert.equal((await state.login()).status, 401)
 })
 
 test('faculty password login cannot access student pages or student leave requests', async (t) => {

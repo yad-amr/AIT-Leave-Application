@@ -11,8 +11,7 @@ async function removeLegacyLeaveRequestExpiryIndex() {
   if (expiryIndex) await collection.dropIndex(expiryIndex.name)
 }
 
-module.exports = async function connect() {
-  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/leave_management'
+module.exports = async function connect(uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/leave_management') {
   await mongoose.connect(uri)
   await removeLegacyLeaveRequestExpiryIndex()
 };

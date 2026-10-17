@@ -4,12 +4,14 @@ const cookieParser = require('cookie-parser')
 const helmet = require('helmet')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
+const path = require('node:path')
 
 function createApp({ config, users, now = Date.now }) {
   const limits = new Map()
   const sessions = new Map()
   const idleMs = config.idleMs || 30 * 60000
   const app = express()
+  if (config.hostedOnLaptop) app.set('trust proxy', 1)
   const cookie = { httpOnly: true, secure: config.production, sameSite: 'strict', path: '/' }
 
   app.use(helmet(), express.json({ limit: '4kb' }), cookieParser())
@@ -69,7 +71,9 @@ function createApp({ config, users, now = Date.now }) {
       if (typeof query.select === 'function') query = query.select('+passwordHash')
       const user = await query
       const validPassword = user?.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false
-      if (!user || !validPassword) return res.status(401).json({ error: 'Email or password is incorrect.' })
+      if (!user || !validPassword || (config.hostedOnLaptop && user.college_id?.startsWith('DEMO-'))) {
+        return res.status(401).json({ error: 'Email or password is incorrect.' })
+      }
 
       const sid = crypto.randomUUID()
       const session = { expiresAt: now() + config.sessionMs, idleExpiresAt: Math.min(now() + config.sessionMs, now() + idleMs) }
@@ -139,6 +143,17 @@ function createApp({ config, users, now = Date.now }) {
     app.get(`/api/${role}/dashboard`, authenticated, (req, res) => {
       if (req.user.role !== role) return res.status(403).json({ error: 'This page is for a different role.' })
       res.json({ message: `Welcome to your ${role} dashboard.` })
+    })
+  }
+
+  if (config.production) {
+    const clientDist = path.resolve(__dirname, '../client/dist')
+    app.use(express.static(clientDist, { index: false }))
+    app.use((req, res, next) => {
+      if (req.method !== 'GET' || req.path.startsWith('/api/') || !req.accepts('html')) return next()
+      res.sendFile(path.join(clientDist, 'index.html'), (error) => {
+        if (error) next(error)
+      })
     })
   }
 

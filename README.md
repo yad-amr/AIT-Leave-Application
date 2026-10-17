@@ -37,6 +37,42 @@ Change the local demo password with `DEMO_PASSWORD` before seeding. Never use de
 
 The app connects to persistent MongoDB at `mongodb://localhost:27017/leave_management` by default. Ensure MongoDB is running before starting the app. To use another persistent MongoDB server, set `MONGODB_URI` in `server/.env` to its connection string. The app no longer silently falls back to a temporary database if MongoDB is unavailable. The seeder creates missing demo accounts and preserves their password hashes on later runs, so a user's password change is not reset at restart. Devices on the same network access the same app and database through the host machine's LAN address.
 
+### Temporary public access from your Windows laptop
+
+For a short trial without moving MongoDB to the cloud, keep MongoDB on your laptop and expose only the app through a temporary Cloudflare Tunnel. From the repository root, run:
+
+```powershell
+.\scripts\start-laptop-host.ps1
+```
+
+The script downloads Cloudflare's Windows tunnel client if needed, verifies its Windows signature, creates a temporary HTTPS URL, and starts the production-built app against the laptop's local MongoDB. Demo seeding is disabled, and accounts created by the local demo seeder are blocked from signing in through the public tunnel. Share the temporary URL only with intended users. The URL changes when restarted; your laptop, MongoDB, internet connection, and the script window must remain available. Do not expose port 27017 or enable MongoDB network binding to the internet. This temporary tunnel has no production availability guarantee.
+
+## Public deployment
+
+To let students and faculty use the same live requests from any network, deploy one copy of this app and connect it to one shared, managed MongoDB database (for example, MongoDB Atlas). Do not use `localhost` for the production database: `localhost` on a hosted service or another computer points to that machine, not to your computer. The server serves the built client and API from the same HTTPS origin.
+
+For a Node.js web service (for example, Render or Railway), configure the repository root as the service root and use:
+
+```text
+Build command: npm run setup && npm run build
+Start command: npm start
+```
+
+Set these environment variables in the hosting provider's private service settings:
+
+| Variable | Production value |
+| --- | --- |
+| `NODE_ENV` | `production` |
+| `DEV_MODE` | `false` |
+| `MONGODB_URI` | The connection string for the shared hosted MongoDB database |
+| `SESSION_SECRET` | A unique random secret of at least 32 characters |
+| `APP_ORIGIN` | The app's public HTTPS origin, e.g. `https://leave.example.edu` (no path or trailing slash) |
+| `COLLEGE_DOMAIN` | The college email domain used for sign-in |
+
+The host must pass its assigned port through `PORT` and allow outbound database connections. Configure the MongoDB provider's network access to allow connections from the app host, and create/provision real student and faculty accounts in that shared database before opening the site. Demo account seeding is disabled in production. Never put database credentials or production secrets in source control or a public chat.
+
+Run exactly one server instance: login revocations and rate limits are currently kept in process memory, so additional instances would not share them. Students and faculty on different computers must visit the same hosted HTTPS URL; requests then read and write the same MongoDB database. The dashboard refreshes leave requests every 15 seconds.
+
 ## Configuration
 
 See [server/.env.example](server/.env.example). Configuration loads from `server/.env`.
