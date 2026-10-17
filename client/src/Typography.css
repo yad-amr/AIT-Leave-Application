@@ -307,3 +307,26 @@ html {
 .student-app .profile-back { margin-bottom: 24px; }
 .faculty-portal .faculty-brand { display: inline-flex; text-decoration: none; }
 .faculty-portal .faculty-brand .logo-wordmark { color: #202737; font-size: 20px; font-weight: 800; letter-spacing: -.5px; }
+
+/* Keep modal close icons centered and prevent inherited button padding. */
+.student-app .request-modal .modal-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 16px;
+}
+.student-app .request-modal .modal-heading > div { min-width: 0; }
+.student-app .request-modal .modal-heading h2 { margin-bottom: 0; }
+.student-app .request-modal .modal-heading .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin: 0;
+  font-size: 26px;
+  line-height: 1;
+}
