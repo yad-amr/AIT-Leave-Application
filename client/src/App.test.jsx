@@ -3,7 +3,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); window.history.replaceState({}, '', '/') })
+afterEach(() => { localStorage.clear(); cleanup(); vi.unstubAllGlobals(); window.history.replaceState({}, '', '/') })
 function mock(handler) { vi.stubGlobal('fetch', vi.fn(async (url, options) => ({ ok: true, json: async () => handler(url, options) }))) }
 test('login validates college domain and supports full-code paste with auto submit', async () => {
   window.history.replaceState({}, '', '/login/student')
@@ -85,4 +85,45 @@ test('logout clears cached session and returns to login',async()=>{
   await screen.findByLabelText('College email address')
   expect(window.location.pathname).toBe('/login/student')
   expect(fetch.mock.calls.some(([url])=>url.endsWith('/logout'))).toBe(true)
+})
+
+test('home page opens the student and faculty portals without login', async () => {
+  render(<App />)
+  expect(screen.getByRole('heading', { name: 'Leave, without the paperwork.' })).toBeTruthy()
+  expect(screen.getByRole('link', { name: 'Open student portal' }).getAttribute('href')).toBe('/portal/student')
+  expect(screen.getByRole('link', { name: 'Open faculty portal' }).getAttribute('href')).toBe('/portal/faculty')
+  expect(screen.getByRole('link', { name: 'For an Enquiry' }).getAttribute('href')).toBe('https://www.aitpune.com/Contact-Us.aspx')
+  expect(screen.getByText('Site Updated On :01 Mar 2026')).toBeTruthy()
+  expect(screen.queryByRole('link', { name: /sign in/i })).toBeNull()
+})
+
+test('student can submit a local demo token and find it in the faculty portal', async () => {
+  window.history.replaceState({}, '', '/portal/student')
+  render(<App />)
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('button', { name: 'New leave request +' }))
+  await user.type(screen.getByLabelText('Destination'), 'Pune')
+  await user.type(screen.getByLabelText('From'), '2026-11-10')
+  await user.type(screen.getByLabelText('To'), '2026-11-11')
+  await user.type(screen.getByLabelText('Reason for leave'), 'Family visit')
+  await user.click(screen.getByRole('button', { name: 'Submit demo request' }))
+  expect((await screen.findAllByText(/AIT-DEMO-/)).length).toBeGreaterThan(0)
+  expect(screen.getByText('Demo portal')).toBeTruthy()
+  await user.click(screen.getByRole('link', { name: 'Faculty portal' }))
+  expect((await screen.findAllByText(/AIT-DEMO-/)).length).toBeGreaterThan(0)
+  expect(screen.getAllByRole('button', { name: 'Approve' }).length).toBeGreaterThan(0)
+})
+
+test('faculty can switch approval stage and see response logs', async () => {
+  window.history.replaceState({}, '', '/portal/faculty')
+  render(<App />)
+  const user = userEvent.setup()
+  expect(await screen.findByText('AIT-DEMO-2026-001')).toBeTruthy()
+  await user.click(screen.getByRole('button', { name: 'Approve' }))
+  expect(await screen.findByText('You’re all caught up.')).toBeTruthy()
+  await user.selectOptions(screen.getByLabelText('Review as'), 'counsellor')
+  expect(await screen.findByText('AIT-DEMO-2026-001')).toBeTruthy()
+  await user.selectOptions(screen.getByLabelText('Review as'), 'warden')
+  await user.click(screen.getByRole('button', { name: 'Logs' }))
+  expect(await screen.findByText(/Approved · Warden/)).toBeTruthy()
 })

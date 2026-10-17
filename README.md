@@ -144,3 +144,9 @@ Sessions default to an eight-hour absolute deadline and a 30-minute idle deadlin
 Diagnosis: ordinary clicks and route refreshes worked in the baseline reproduction, but a diagnostic 401 from `/api/home/summary` reproduced the unwanted login redirect despite a valid cookie. Multiple non-session API handlers contained these redirects, and route guards also repeated session checks every 15 seconds. These paths are now removed. The existing in-memory session store remains a hackathon limitation: API restarts or switching API processes invalidates sessions. No persistence or multi-instance storage was added.
 
 Verification includes Chrome navigation, refresh, form/card clicks, injected unrelated 401, logout cookie removal, an isolated browser run with a short idle timeout, and fake-clock tests covering the full 30-minute idle and eight-hour absolute windows. Run `npm run dev` as before.
+
+## Browser-local demo
+
+The home page (`/`) and `/portal/student` and `/portal/faculty` offer a browser-local demo without sign-in. Demo requests, review decisions, and printable records are stored only in local storage and are not official approvals. Clearing local storage resets them.
+
+Authenticated workflows remain available at `/login/student`, `/login/faculty`, and `/student/dashboard`. Demo requests are separate from server applications.

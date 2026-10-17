@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import './App.css'
 import Student from './Student'
+import { Home, PortalRoute } from './DemoPortal'
 import Logo from './Logo'
 import { api } from './api'
 import { useSession } from './session'
@@ -105,15 +106,22 @@ function Dashboard({ student = false }) {
   if(role==='student') return <Student user={user} />
   return <main className="dashboard"><p className="eyebrow">SMART LEAVE / {role}</p><h1>Welcome, {user.name}</h1><p>{user.email}</p><p>Your {role} dashboard will live here.</p>{(error || actionError) && <p role="alert" className="error">{actionError || error}</p>}<button onClick={async()=>{try{await logout();navigate(`/login/${role}`,{replace:true})}catch(e){setActionError(e.message)}}}>Sign out</button></main>
 }
-function App() {
+function AuthApp() {
   const [directLogin, setDirectLogin] = useState(false)
   const [domain, setDomain] = useState('')
   const [error, setError] = useState('')
   useEffect(() => { api('/auth/config').then(data => { setDomain(data.domain); setDirectLogin(!!data.directLogin) }).catch(() => setError('Unable to connect. Check the server and reload this page.')) }, [])
   if (error) return <p role="alert">{error}</p>
   if (!domain) return <p role="status">Connecting to Smart Leave…</p>
-  return <SessionProvider><BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} directLogin={directLogin} />} /><Route path="/applications/:id" element={<StudentGuard />} /><Route path="/student/*" element={<StudentGuard />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter></SessionProvider>
+  return <SessionProvider><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} directLogin={directLogin} />} /><Route path="/applications/:id" element={<StudentGuard />} /><Route path="/student/*" element={<StudentGuard />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></SessionProvider>
 }
 function StudentGuard() { return <Dashboard student /> }
 function RoleLogin({ domain, directLogin }) { const { role } = useParams(); return <Login key={role} domain={domain} directLogin={directLogin} /> }
+function App() {
+  return <BrowserRouter><Routes>
+    <Route path="/" element={<Home />} />
+    <Route path="/portal/:section" element={<PortalRoute />} />
+    <Route path="*" element={<AuthApp />} />
+  </Routes></BrowserRouter>
+}
 export default App
