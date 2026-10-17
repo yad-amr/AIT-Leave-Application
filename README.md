@@ -49,7 +49,7 @@ The script downloads Cloudflare's Windows tunnel client if needed, verifies its 
 
 ## Public deployment
 
-To let students and faculty use the same live requests from any network, deploy one copy of this app and connect it to one shared, managed MongoDB database (for example, MongoDB Atlas). Do not use `localhost` for the production database: `localhost` on a hosted service or another computer points to that machine, not to your computer. The server serves the built client and API from the same HTTPS origin.
+To let students and faculty use the same live requests from any network, deploy one copy of the API and connect it to one shared, managed MongoDB database (for example, MongoDB Atlas). Do not use `localhost` for the production database: `localhost` on a hosted service or another computer points to that machine, not to your computer. The frontend can be served by the backend, Vercel with a same-origin API proxy, or GitHub Pages with a cross-origin API connection.
 
 For a Node.js web service (for example, Render or Railway), configure the repository root as the service root and use:
 
@@ -65,6 +65,14 @@ Vercel hosts the Vite frontend and proxies `/api/*` requests to the Express back
 In Vercel's project environment variables, add `API_ORIGIN` with the backend's HTTPS origin only, for example `https://leave-api.example.com` (no path or trailing slash). Add it for Production and any Preview environments you intend to use. Set the backend's `APP_ORIGIN` to the exact Vercel origin used by the frontend, and set its other production variables as described above. If you add a custom domain or use Vercel preview deployments, update `APP_ORIGIN` to match that exact origin; the backend rejects write requests from other origins.
 
 The Vercel API proxy keeps browser requests and the secure session cookie on the frontend's origin. It returns an explicit error if `API_ORIGIN` is missing or invalid, or if the backend cannot be reached.
+
+### Deploying the frontend on GitHub Pages
+
+The `Deploy GitHub Pages` workflow builds and publishes the frontend from `main` at `https://yad-amr.github.io/AIT-Leave-Application/`, using the Render API origin configured in the workflow. In the GitHub repository, open **Settings → Pages** and choose **GitHub Actions** as the build and deployment source. Subsequent pushes to `main` deploy the frontend automatically.
+
+For the Render backend, set `APP_ORIGIN=https://yad-amr.github.io` and `COOKIE_SAME_SITE=none`, then redeploy it. The API sends credentialed CORS responses only to the configured `APP_ORIGIN`. The Pages build uses `VITE_API_ORIGIN` to call the Render API directly; change the value in `.github/workflows/deploy-pages.yml` if the backend URL changes.
+
+**Browser compatibility warning:** GitHub Pages (`github.io`) and Render (`onrender.com`) are different sites. The login session cookie must be sent as a third-party cookie; browsers or privacy settings that block third-party cookies can prevent sign-in from working. A custom domain shared by the frontend and API (for example, `leave.example.edu` and `api.example.edu`) is recommended for reliable cookie behavior. GitHub Pages cannot proxy API requests.
 
 Set these environment variables in the hosting provider's private service settings:
 
@@ -94,6 +102,7 @@ See [server/.env.example](server/.env.example). Configuration loads from `server
 | `DEMO_PASSWORD` | Optional password for local seeded demo accounts. |
 | `MONGODB_URI` | MongoDB connection string; defaults to `mongodb://localhost:27017/leave_management`. |
 | `APP_ORIGIN` | Allowed browser origin; default `http://localhost:5173`. |
+| `COOKIE_SAME_SITE` | Session cookie SameSite setting; defaults to `strict`. Use `none` only for HTTPS cross-site frontend/API deployments. |
 | `PORT` | API port; default 3001. |
 | `NODE_ENV` | Set to `production` behind HTTPS to enable Secure cookies and disable demo account seeding. |
 

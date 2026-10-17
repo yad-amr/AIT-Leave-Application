@@ -1,4 +1,5 @@
 import Logo from '../../Logo.jsx'
+import { apiUrl } from '../../api.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import PasswordChangeModal from '../common/PasswordChangeModal.jsx'
 import './FacultyDashboard.css'
@@ -26,7 +27,7 @@ export default function FacultyDashboard({ user, onSignOut }) {
   const role = user?.approvalRole
 
   const loadQueue = useCallback(async () => {
-    const response = await fetch('/api/faculty/approvals', { credentials: 'same-origin' })
+    const response = await fetch(apiUrl('/faculty/approvals'), { credentials: 'include' })
     const data = await response.json()
     if (!response.ok) throw new Error(data.message || 'Could not load assigned requests.')
     return data
@@ -54,7 +55,7 @@ export default function FacultyDashboard({ user, onSignOut }) {
 
   async function loadHistory() {
     try {
-      const response = await fetch('/api/faculty/approvals/history', { credentials: 'same-origin' })
+      const response = await fetch(apiUrl('/faculty/approvals/history'), { credentials: 'include' })
       const data = await response.json()
       if (!response.ok) throw new Error(data.message || 'Could not load your decision history.')
       setHistory(data.requests || [])
@@ -76,9 +77,9 @@ export default function FacultyDashboard({ user, onSignOut }) {
     setBusyId(request.id)
     setNotice('')
     try {
-      const response = await fetch(`/api/faculty/approvals/${request.id}/decision`, {
+      const response = await fetch(apiUrl(`/faculty/approvals/${request.id}/decision`), {
         method: 'POST',
-        credentials: 'same-origin',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ decision, comment }),
       })
@@ -95,7 +96,7 @@ export default function FacultyDashboard({ user, onSignOut }) {
   }
 
   return <main className="faculty-portal">
-    <header className="faculty-header"><div><a className="faculty-brand" href="/faculty/dashboard" aria-label="Smart Leave dashboard home"><Logo /></a><h1>{stageLabels[role] || 'Faculty'} approvals</h1><p>Signed in as {user?.name} · {user?.email}</p></div><div className="faculty-header-actions"><button type="button" onClick={() => setShowPasswordChange(true)}>Change password</button><button type="button" onClick={onSignOut}>Sign out</button></div></header>
+    <header className="faculty-header"><div><a className="faculty-brand" href={`${import.meta.env.BASE_URL}faculty/dashboard`} aria-label="Smart Leave dashboard home"><Logo /></a><h1>{stageLabels[role] || 'Faculty'} approvals</h1><p>Signed in as {user?.name} · {user?.email}</p></div><div className="faculty-header-actions"><button type="button" onClick={() => setShowPasswordChange(true)}>Change password</button><button type="button" onClick={onSignOut}>Sign out</button></div></header>
     {notice && <p className="faculty-notice" role="status">{notice}</p>}
     <section className="faculty-queue"><div className="faculty-queue-heading"><div><span>YOUR WORK</span><h2>{view === 'queue' ? 'Review dashboard' : 'Decision history'}</h2></div><div className="faculty-header-actions"><button type="button" onClick={() => { setView('queue'); refreshQueue() }}>Pending queue</button><button type="button" onClick={() => { setView('history'); loadHistory() }}>My decisions</button><button type="button" className="faculty-refresh" onClick={refreshQueue} disabled={refreshing}>{refreshing ? 'Refreshing…' : 'Refresh queue ↻'}</button></div></div>
       {view === 'queue' ? <>
@@ -104,7 +105,7 @@ export default function FacultyDashboard({ user, onSignOut }) {
       {loading ? <p className="faculty-empty">Loading assigned requests…</p> : requests.length === 0 ? <p className="faculty-empty">No requests are waiting for your review.</p> : visibleRequests.length === 0 ? <p className="faculty-empty">No requests match these filters.</p> : visibleRequests.map((request) => <article className={`faculty-request ${request.priority === 'urgent' ? 'faculty-request-urgent' : ''}`} key={request.id}>
         <div className="faculty-request-top"><div><span className="faculty-reference">{request.reference} · {request.applicationType === 'outpass' ? 'OUTPASS' : 'LEAVE'}</span><h3>{request.studentName || 'Student'} <small>{request.studentEmail}</small></h3></div><div className="faculty-badges"><span className={`faculty-priority ${request.priority || 'normal'}`}>{request.priority === 'urgent' ? 'Urgent' : 'Normal'}</span><span className="faculty-stage">{stageLabels[role]}</span></div></div>
         <div className="faculty-request-info"><div><span>APPLICATION</span><strong>{request.applicationType === 'outpass' ? 'Outpass' : request.leaveType}</strong></div><div><span>DATES</span><strong>{formatDate(request.startDate)} – {formatDate(request.endDate)}</strong></div><div><span>STUDENT PHONE</span><strong>{request.contactNumber || '—'}</strong></div>{request.applicationType === 'outpass' && <div><span>OUTPASS TIME</span><strong>{request.departureTime} – {request.returnTime}</strong></div>}</div>
-        <p className="faculty-reason">{request.reason}</p>{request.leaveAddress && <p className="faculty-reason" style={{ whiteSpace: 'pre-wrap' }}><strong>Leave address:</strong> {request.leaveAddress}</p>}{request.attachment && <a className="faculty-proof" href={`/api/faculty/approvals/${request.id}/proof`}>Supporting proof: {request.attachment.name}</a>}{request.studentResponse?.message && <p className="faculty-student-response"><strong>Student response:</strong> {request.studentResponse.message}</p>}
+        <p className="faculty-reason">{request.reason}</p>{request.leaveAddress && <p className="faculty-reason" style={{ whiteSpace: 'pre-wrap' }}><strong>Leave address:</strong> {request.leaveAddress}</p>}{request.attachment && <a className="faculty-proof" href={apiUrl(`/faculty/approvals/${request.id}/proof`)}>Supporting proof: {request.attachment.name}</a>}{request.studentResponse?.message && <p className="faculty-student-response"><strong>Student response:</strong> {request.studentResponse.message}</p>}
         <div className="faculty-assignees">{(request.approvers || []).map((person) => <span key={person.role}>{stageLabels[person.role]}: {person.name}</span>)}</div>
         <label className="faculty-comment">Decision note <small>Required for rejection or information requests; shared with the student.</small><textarea rows="2" maxLength="1000" value={comments[request.id] || ''} onChange={(event) => setComments((current) => ({ ...current, [request.id]: event.target.value }))} placeholder="Add a reason or guidance for the student" /></label>
         <div className="faculty-actions"><button type="button" className="faculty-reject" disabled={busyId === request.id} onClick={() => decide(request, 'rejected')}>Reject</button>{request.applicationType !== 'outpass' && <button type="button" className="faculty-request-info-button" disabled={busyId === request.id} onClick={() => decide(request, 'needs_information')}>Request information</button>}<button type="button" className="faculty-approve" disabled={busyId === request.id} onClick={() => decide(request, 'approved')}>{busyId === request.id ? 'Saving…' : request.applicationType === 'outpass' ? 'Approve outpass' : 'Approve and forward'}</button></div>

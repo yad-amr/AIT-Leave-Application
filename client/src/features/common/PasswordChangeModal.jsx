@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { apiUrl } from '../../api.js'
 import './PasswordChangeModal.css'
 
 export default function PasswordChangeModal({ onClose, onChanged }) {
@@ -13,7 +14,7 @@ export default function PasswordChangeModal({ onClose, onChanged }) {
     if (form.newPassword !== form.confirmPassword) return setError('The new passwords do not match.')
     setSaving(true)
     try {
-      const response = await fetch('/api/auth/change-password', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: form.currentPassword, newPassword: form.newPassword }) })
+      const response = await fetch(apiUrl('/auth/change-password'), { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: form.currentPassword, newPassword: form.newPassword }) })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Could not change your password.')
       onChanged(data.message)

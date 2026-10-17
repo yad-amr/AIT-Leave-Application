@@ -4,9 +4,9 @@ const bcrypt = require('bcrypt')
 const request = require('supertest')
 const { createApp } = require('./auth')
 
-function setup(t, { hostedOnLaptop = false } = {}) {
+function setup(t, { hostedOnLaptop = false, cookieSameSite = 'strict' } = {}) {
   let clock = Date.now()
-  const config = { secret: 'test-secret-that-is-at-least-32-characters', domain: 'aitpune.edu.in', sessionMs: 3600000, origin: 'http://localhost:5173', devMode: true, production: false, hostedOnLaptop }
+  const config = { secret: 'test-secret-that-is-at-least-32-characters', domain: 'aitpune.edu.in', sessionMs: 3600000, origin: 'http://localhost:5173', devMode: true, production: false, hostedOnLaptop, cookieSameSite }
   const records = [
     { id: 'student-id', email: 'student_123456@aitpune.edu.in', role: 'student', name: 'Demo student', college_id: hostedOnLaptop ? 'DEMO-240101' : 'STUDENT-240101', passwordHash: bcrypt.hashSync('StudentPass123!', 4) },
     { id: 'faculty-id', email: 'faculty@aitpune.edu.in', role: 'faculty', name: 'Demo faculty', passwordHash: bcrypt.hashSync('FacultyPass123!', 4) },
@@ -32,6 +32,27 @@ test('student password login issues a secure session and opens only student rout
   assert.equal((await state.agent.get('/api/auth/session')).status, 200)
   assert.equal((await state.agent.get('/api/student/dashboard')).status, 200)
   assert.equal((await state.agent.get('/api/faculty/dashboard')).status, 403)
+})
+
+test('API allows credentialed requests only from the configured frontend origin', async (t) => {
+  const state = setup(t)
+  const preflight = await request(state.app)
+    .options('/api/auth/login')
+    .set('Origin', 'http://localhost:5173')
+    .set('Access-Control-Request-Method', 'POST')
+    .set('Access-Control-Request-Headers', 'content-type')
+  assert.equal(preflight.status, 204)
+  assert.equal(preflight.headers['access-control-allow-origin'], 'http://localhost:5173')
+  assert.equal(preflight.headers['access-control-allow-credentials'], 'true')
+  const blocked = await request(state.app).get('/api/auth/config').set('Origin', 'https://evil.example')
+  assert.equal(blocked.status, 403)
+})
+
+test('cross-site session cookie mode uses SameSite=None', async (t) => {
+  const state = setup(t, { cookieSameSite: 'none' })
+  const response = await state.login()
+  assert.equal(response.status, 200)
+  assert.match(response.headers['set-cookie'][0], /SameSite=None/)
 })
 
 test('wrong password, unknown account, and invalid email are rejected', async (t) => {

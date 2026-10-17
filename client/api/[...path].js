@@ -1,3 +1,6 @@
+import { Buffer } from 'node:buffer'
+import process from 'node:process'
+
 const hopByHopHeaders = new Set([
   'connection',
   'content-length',
@@ -6,7 +9,7 @@ const hopByHopHeaders = new Set([
   'transfer-encoding',
 ])
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   const backendOrigin = process.env.API_ORIGIN
   let backendUrl
 
@@ -58,7 +61,7 @@ module.exports = async function handler(req, res) {
   }
 }
 
-module.exports.config = {
+export const config = {
   api: {
     bodyParser: false,
   },

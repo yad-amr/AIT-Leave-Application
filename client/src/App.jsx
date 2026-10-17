@@ -3,18 +3,9 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import StudentDashboard from './features/student/StudentDashboard.jsx'
 import FacultyDashboard from './features/faculty/FacultyDashboard.jsx'
+import { api } from './api.js'
 import './App.css'
 import './Typography.css'
-
-async function api(path, body) {
-  const response = await fetch(`/api${path}`, {
-    credentials: 'same-origin',
-    ...(body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}),
-  })
-  const data = await response.json()
-  if (!response.ok) throw Object.assign(new Error(data.error || data.message || 'Request failed. Please try again.'), { status: response.status, ...data })
-  return data
-}
 
 function Login({ domain }) {
   const { role } = useParams()
@@ -49,7 +40,7 @@ function Login({ domain }) {
   }
 
   return <main className="shell">
-    <aside className="intro"><a className="brand" href="/"><Logo /></a><div><p className="eyebrow">YOUR CAMPUS. CONNECTED.</p><h1>A little less paperwork.<br /><span className="login-highlight">A lot more possibility.</span></h1><p>One place for hostel leave and academic outpasses. Sign in with your college account to get started.</p></div><p className="footnote">Smart Leave Management System · AIT</p></aside>
+    <aside className="intro"><a className="brand" href={import.meta.env.BASE_URL}><Logo /></a><div><p className="eyebrow">YOUR CAMPUS. CONNECTED.</p><h1>A little less paperwork.<br /><span className="login-highlight">A lot more possibility.</span></h1><p>One place for hostel leave and academic outpasses. Sign in with your college account to get started.</p></div><p className="footnote">Smart Leave Management System · AIT</p></aside>
     <section className="panel" aria-labelledby="login-title"><div className="card">
       <p className="eyebrow">WELCOME BACK</p><h2 id="login-title">Sign in to Smart Leave</h2><p className="muted">Use your college email and password.</p>
       <nav className="roles" aria-label="Sign-in role"><NavLink to="/login/student">Student</NavLink><NavLink to="/login/faculty">Faculty</NavLink></nav>
@@ -133,7 +124,7 @@ function AuthenticatedApp() {
   }, [])
   if (error) return <p role="alert">{error}</p>
   if (!domain) return <p role="status">Connecting to Smart Leave…</p>
-  return <BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="/portal/:role" element={<LegacyLoginRedirect />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
+  return <BrowserRouter basename={import.meta.env.BASE_URL}><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="/portal/:role" element={<LegacyLoginRedirect />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
 }
 
 function App() {

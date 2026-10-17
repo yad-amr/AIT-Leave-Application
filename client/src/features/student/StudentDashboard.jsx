@@ -1,10 +1,9 @@
 import StudentSupport from './StudentSupport.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import Logo from '../../Logo.jsx'
+import { apiUrl } from '../../api.js'
 import PasswordChangeModal from '../common/PasswordChangeModal.jsx'
 import './StudentDashboard.css'
-
-const apiBaseUrl = ''
 
 function formatDate(value) {
   if (!value) return ''
@@ -169,7 +168,7 @@ function StudentDashboard({ user, onSignOut }) {
 
     async function fetchRequests() {
       try {
-        const response = await fetch(`${apiBaseUrl}/api/leave-requests`, { credentials: 'include' })
+        const response = await fetch(apiUrl('/leave-requests'), { credentials: 'include' })
         if (!response.ok) {
           if (response.status === 401) throw new Error('Sign in with a student account to view your live requests.')
           throw new Error('Could not load your leave requests.')
@@ -198,7 +197,7 @@ function StudentDashboard({ user, onSignOut }) {
 
   useEffect(() => {
     let active = true
-    fetch(`${apiBaseUrl}/api/leave-requests/leave-types`, { credentials: 'include' })
+    fetch(apiUrl('/leave-requests/leave-types'), { credentials: 'include' })
       .then(async (response) => {
         const data = await response.json()
         if (!response.ok) throw new Error(data.message || 'Could not load leave types.')
@@ -211,7 +210,7 @@ function StudentDashboard({ user, onSignOut }) {
 
   useEffect(() => {
     let active = true
-    fetch(`${apiBaseUrl}/api/leave-requests/approvers`, { credentials: 'include' })
+    fetch(apiUrl('/leave-requests/approvers'), { credentials: 'include' })
       .then(async (response) => {
         const data = await response.json()
         if (!response.ok) throw new Error(data.message || 'Could not load approvers.')
@@ -240,7 +239,7 @@ function StudentDashboard({ user, onSignOut }) {
         })
         body.append('proof', proof)
       }
-      const response = await fetch(`${apiBaseUrl}/api/leave-requests`, {
+      const response = await fetch(apiUrl('/leave-requests'), {
         method: 'POST',
         credentials: 'include',
         ...(!proof ? { headers: { 'Content-Type': 'application/json' } } : {}),
@@ -260,7 +259,7 @@ function StudentDashboard({ user, onSignOut }) {
   async function downloadApproval(request) {
     setDownloadingId(request.id)
     try {
-      const response = await fetch(`${apiBaseUrl}/api/leave-requests/${request.id}/pdf`, { credentials: 'include' })
+      const response = await fetch(apiUrl(`/leave-requests/${request.id}/pdf`), { credentials: 'include' })
       if (!response.ok) {
         const data = await response.json()
         throw new Error(data.message || 'Could not download the approval letter.')
@@ -283,7 +282,7 @@ function StudentDashboard({ user, onSignOut }) {
 
   async function downloadProof(request) {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/leave-requests/${request.id}/proof`, { credentials: 'include' })
+      const response = await fetch(apiUrl(`/leave-requests/${request.id}/proof`), { credentials: 'include' })
       if (!response.ok) throw new Error('Could not download supporting proof.')
       const url = URL.createObjectURL(await response.blob())
       const link = document.createElement('a')
@@ -299,7 +298,7 @@ function StudentDashboard({ user, onSignOut }) {
   async function cancelRequest(request) {
     setCancellingId(request.id)
     try {
-      const response = await fetch(`${apiBaseUrl}/api/leave-requests/${request.id}/cancel`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      const response = await fetch(apiUrl(`/leave-requests/${request.id}/cancel`), { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: '{}' })
       const data = await response.json()
       if (!response.ok) throw new Error(data.message || 'Could not cancel this request.')
       setRequests((current) => current.map((item) => item.id === request.id ? data.request : item))
@@ -312,7 +311,7 @@ function StudentDashboard({ user, onSignOut }) {
   async function respondToRequest(request, message) {
     setRespondingId(request.id)
     try {
-      const response = await fetch(`${apiBaseUrl}/api/leave-requests/${request.id}/respond`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }) })
+      const response = await fetch(apiUrl(`/leave-requests/${request.id}/respond`), { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }) })
       const data = await response.json()
       if (!response.ok) throw new Error(data.message || 'Could not send your response.')
       setRequests((current) => current.map((item) => item.id === request.id ? data.request : item))

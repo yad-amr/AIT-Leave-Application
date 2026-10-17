@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { apiUrl } from './api.js'
 import './ApplicationDetail.css'
 const roles = { class_teacher: 'Class Teacher / Counselor', hod: 'HOD', warden: 'Warden', director: 'Director' }
 const formatDate = value => value ? new Date(value).toLocaleString() : 'Not yet decided'
@@ -37,7 +38,7 @@ export default function ApplicationDetail({ id, api }) {
       </li>
     })}</ol>
     <h2>Application summary</h2><dl className="details">{Object.entries(data.fields).map(([key,value])=><div key={key}><dt>{fieldLabels[key] || key}</dt><dd>{(['out_at','return_at'].includes(key) ? String(value).replace('T',' · ') : String(value))}</dd></div>)}</dl>
-    {data.attachment?.size && <p><a href={`/api/applications/${id}/proof`}>Download proof: {data.attachment.name}</a></p>}
+    {data.attachment?.size && <p><a href={apiUrl(`/applications/${id}/proof`)}>Download proof: {data.attachment.name}</a></p>}
     <h2>Selected approvers</h2><ul className="assigned-list">{steps.map(s=><li key={s.role}><strong>{roles[s.role]}:</strong> {s.approver_name || 'Unassigned'}{s.department && ` — ${s.department}`}</li>)}</ul>
     {canCancel && <button onClick={()=>setConfirm(true)}>Cancel application</button>}
     {confirm && <CancelConfirmation busy={busy} cancel={cancel} close={()=>setConfirm(false)} />}

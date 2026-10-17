@@ -12,16 +12,24 @@ function createApp({ config, users, now = Date.now }) {
   const idleMs = config.idleMs || 30 * 60000
   const app = express()
   if (config.hostedOnLaptop) app.set('trust proxy', 1)
-  const cookie = { httpOnly: true, secure: config.production, sameSite: 'strict', path: '/' }
+  const cookie = { httpOnly: true, secure: config.production, sameSite: config.cookieSameSite || 'strict', path: '/' }
 
   app.use(helmet(), express.json({ limit: '4kb' }), cookieParser())
   app.use('/api', (req, res, next) => {
     const forwardedHost = req.headers['x-forwarded-host']
     const forwardedOrigin = forwardedHost ? `http://${forwardedHost}` : null
     const allowedOrigin = req.headers.origin === config.origin || (config.devMode && req.headers.origin === forwardedOrigin)
-    if (req.method !== 'GET' && req.headers.origin && !allowedOrigin) {
+    if (req.headers.origin && !allowedOrigin) {
       return res.status(403).json({ error: 'Request rejected.' })
     }
+    if (req.headers.origin && allowedOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin)
+      res.setHeader('Access-Control-Allow-Credentials', 'true')
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+      res.setHeader('Vary', 'Origin')
+    }
+    if (req.method === 'OPTIONS') return res.sendStatus(204)
     next()
   })
 

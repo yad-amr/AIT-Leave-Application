@@ -6,6 +6,8 @@ function config() {
   const secret = process.env.SESSION_SECRET
   if (!secret || secret.length < 32) throw new Error('Set SESSION_SECRET to at least 32 random characters.')
   const origin = process.env.APP_ORIGIN || 'http://localhost:5173'
+  const cookieSameSite = process.env.COOKIE_SAME_SITE || 'strict'
+  if (!['strict', 'lax', 'none'].includes(cookieSameSite)) throw new Error('Invalid COOKIE_SAME_SITE')
   const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/leave_management'
   const hostedOnLaptop = process.env.HOSTED_ON_LAPTOP === 'true'
   if (production) {
@@ -46,6 +48,7 @@ function config() {
     idleMs: positive('SESSION_IDLE_SECONDS', 1800) * 1000,
     sessionMs: positive('SESSION_EXPIRY_SECONDS', 28800) * 1000,
     origin,
+    cookieSameSite,
     mongoUri,
     hostedOnLaptop,
   }
