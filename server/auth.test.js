@@ -10,6 +10,7 @@ function setup(t) {
   const records = [
     { id: 'student-id', email: 'student_123456@aitpune.edu.in', role: 'student', name: 'Demo student', passwordHash: bcrypt.hashSync('StudentPass123!', 4) },
     { id: 'faculty-id', email: 'faculty@aitpune.edu.in', role: 'faculty', name: 'Demo faculty', passwordHash: bcrypt.hashSync('FacultyPass123!', 4) },
+    { id: 'warden-id', email: 'beauty.das_wardengirlshostel@aitpune.edu.in', role: 'faculty', approvalRole: 'warden', name: 'Ms. Beauty Das', passwordHash: bcrypt.hashSync('FacultyPass123!', 4) },
   ]
   const users = {
     findOne: ({ email, role }) => ({ select: async () => records.find((user) => user.email === email && user.role === role) || null }),
@@ -47,6 +48,13 @@ test('faculty password login cannot access student pages or student leave reques
   assert.equal((await state.agent.get('/api/faculty/dashboard')).status, 200)
   assert.equal((await state.agent.get('/api/student/dashboard')).status, 403)
   assert.equal((await state.agent.get('/api/leave-requests')).status, 403)
+})
+
+test('faculty login accepts a name_designation email', async (t) => {
+  const state = setup(t)
+  const response = await state.login('beauty.das_wardengirlshostel@aitpune.edu.in', 'FacultyPass123!', 'faculty')
+  assert.equal(response.status, 200)
+  assert.equal(response.body.user.name, 'Ms. Beauty Das')
 })
 
 test('session is required and logout revokes the cookie', async (t) => {

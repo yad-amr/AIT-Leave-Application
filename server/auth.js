@@ -44,7 +44,7 @@ function createApp({ config, users, now = Date.now }) {
     if (!['student', 'faculty'].includes(role)) return false
     const parts = email.split('@')
     if (parts.length !== 2 || parts[1] !== config.domain) return false
-    const pattern = role === 'student' ? /^[a-z][a-z.-]*_\d{6}$/i : /^[a-z][a-z.-]*$/i
+    const pattern = role === 'student' ? /^[a-z][a-z.-]*_\d{6}$/i : /^[a-z][a-z.-]*(?:_[a-z][a-z0-9.-]*)?$/i
     return pattern.test(parts[0])
   }
 
@@ -56,7 +56,7 @@ function createApp({ config, users, now = Date.now }) {
       const password = req.body.password
       const role = req.body.role
       if (!validEmail(email, role)) {
-        return res.status(400).json({ error: role === 'student' ? `Use name_123456@${config.domain} with a six-digit registration number.` : `Use name@${config.domain} for faculty sign-in.` })
+        return res.status(400).json({ error: role === 'student' ? `Use name_123456@${config.domain} with a six-digit registration number.` : `Use name@${config.domain} or name_designation@${config.domain} for faculty sign-in.` })
       }
       if (typeof password !== 'string' || password.length < 8 || password.length > 200) {
         return res.status(400).json({ error: 'Enter a valid password.' })
