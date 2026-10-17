@@ -14,7 +14,10 @@ function createApp({ config, users, now = Date.now }) {
 
   app.use(helmet(), express.json({ limit: '4kb' }), cookieParser())
   app.use('/api', (req, res, next) => {
-    if (req.method !== 'GET' && req.headers.origin && req.headers.origin !== config.origin) {
+    const forwardedHost = req.headers['x-forwarded-host']
+    const forwardedOrigin = forwardedHost ? `http://${forwardedHost}` : null
+    const allowedOrigin = req.headers.origin === config.origin || (config.devMode && req.headers.origin === forwardedOrigin)
+    if (req.method !== 'GET' && req.headers.origin && !allowedOrigin) {
       return res.status(403).json({ error: 'Request rejected.' })
     }
     next()

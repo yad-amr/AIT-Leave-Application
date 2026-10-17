@@ -6,7 +6,7 @@ const { createApp } = require('./auth')
 
 function setup(t) {
   let clock = Date.now()
-  const config = { secret: 'test-secret-that-is-at-least-32-characters', domain: 'aitpune.edu.in', sessionMs: 3600000, origin: 'http://localhost:5173', production: false }
+  const config = { secret: 'test-secret-that-is-at-least-32-characters', domain: 'aitpune.edu.in', sessionMs: 3600000, origin: 'http://localhost:5173', devMode: true, production: false }
   const records = [
     { id: 'student-id', email: 'student_123456@aitpune.edu.in', role: 'student', name: 'Demo student', passwordHash: bcrypt.hashSync('StudentPass123!', 4) },
     { id: 'faculty-id', email: 'faculty@aitpune.edu.in', role: 'faculty', name: 'Demo faculty', passwordHash: bcrypt.hashSync('FacultyPass123!', 4) },
@@ -61,6 +61,8 @@ test('session is required and logout revokes the cookie', async (t) => {
 
 test('login rate limit and foreign-origin protection reject requests', async (t) => {
   const state = setup(t)
+  const lanOrigin = await request(state.app).post('/api/auth/login').set('X-Forwarded-Host', '192.168.1.50:5173').set('Origin', 'http://192.168.1.50:5173').send({ email: 'student_123456@aitpune.edu.in', password: 'StudentPass123!', role: 'student' })
+  assert.equal(lanOrigin.status, 200)
   for (let attempt = 0; attempt < 10; attempt++) await state.login(undefined, 'WrongPass123!')
   assert.equal((await state.login()).status, 429)
   const blocked = await request(state.app).post('/api/auth/login').set('Origin', 'https://evil.example').send({ email: 'student_123456@aitpune.edu.in', password: 'StudentPass123!', role: 'student' })
