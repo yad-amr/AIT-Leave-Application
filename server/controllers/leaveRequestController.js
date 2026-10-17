@@ -113,7 +113,7 @@ async function createLeaveRequest(req, res, next) {
     if (applicationType === 'outpass' && (from.toDateString() !== to.toDateString() || !/^([01]\d|2[0-3]):[0-5]\d$/.test(departureTime || '') || !/^([01]\d|2[0-3]):[0-5]\d$/.test(returnTime || '') || departureTime >= returnTime || typeof destination !== 'string' || !destination.trim() || destination.trim().length > 200 || typeof contactNumber !== 'string' || !/^\+?[\d ()-]{7,20}$/.test(contactNumber.trim()))) {
       return res.status(400).json({ message: 'Enter a same-day outpass with valid departure and return times, a destination, and a contact number.' })
     }
-    if (applicationType === 'leave' && (typeof leaveAddress !== 'string' || !leaveAddress.trim() || leaveAddress.trim().length > 1000)) return res.status(400).json({ message: 'Enter a leave address of up to 1000 characters.' })
+    if (typeof leaveAddress !== 'string' || !leaveAddress.trim() || leaveAddress.trim().length > 1000) return res.status(400).json({ message: 'Enter a leave address of up to 1000 characters.' })
     if (!['normal', 'urgent'].includes(priority)) return res.status(400).json({ message: 'Choose normal or urgent priority.' })
     if (!startDate || Number.isNaN(from.getTime()) || !endDate || Number.isNaN(to.getTime())) return res.status(400).json({ message: 'Enter valid start and end dates.' })
     if (to < from) return res.status(400).json({ message: 'The end date must be on or after the start date.' })
@@ -150,7 +150,7 @@ async function createLeaveRequest(req, res, next) {
       startDate: from,
       endDate: to,
       reason: reason.trim(),
-      leaveAddress: applicationType === 'leave' ? leaveAddress.trim() : '',
+      leaveAddress: leaveAddress.trim(),
       departureTime: applicationType === 'outpass' ? departureTime : undefined,
       returnTime: applicationType === 'outpass' ? returnTime : undefined,
       destination: applicationType === 'outpass' ? destination.trim() : '',

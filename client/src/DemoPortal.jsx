@@ -1,3 +1,4 @@
+import Logo from './Logo.jsx'
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom'
 import './DemoPortal.css'
@@ -25,7 +26,7 @@ const initialRequests = () => [{
 
 function Home() {
   return <div className="home">
-    <header className="home-nav"><Link className="brand" to="/">SL <span>SMART LEAVE</span></Link><nav aria-label="Portal navigation"><a href="/login/student">Student sign in</a><a href="/login/faculty">Faculty sign in</a></nav></header>
+    <header className="home-nav"><Link className="brand" to="/"><Logo /></Link><nav aria-label="Portal navigation"><a href="/login/student">Student sign in</a><a href="/login/faculty">Faculty sign in</a></nav></header>
     <main className="home-hero"><p className="eyebrow">ARMY INSTITUTE OF TECHNOLOGY · PUNE</p><h1>Leave, without the paperwork.</h1><p>One clear process for student leave requests, approvals and updates.</p><div className="hero-actions"><a className="button-link" href="/login/student">Student sign in <span aria-hidden="true">→</span></a><a className="secondary-link" href="/login/faculty">Faculty sign in</a></div><p className="hero-caption">One request. Four approvals. Every update in one place.</p></main>
     <footer className="site-footer">
       <div className="footer-main">
@@ -116,7 +117,7 @@ function Certificate({ request, onBack }) {
 }
 
 function PortalHeader({ section, role, onRoleChange }) {
-  return <header className="portal-header"><Link className="brand" to="/">SL <span>SMART LEAVE</span></Link><nav aria-label="Portal navigation"><a href="/login/student">Student sign in</a><NavLink to="/portal/faculty">Faculty demo</NavLink><a href={`/login/${section}`}>Open authenticated portal</a>{section === 'faculty' && <label className="stage-selector">Review as <select value={role} onChange={event => onRoleChange(event.target.value)}>{stages.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label>}<Link className="home-link" to="/">Home</Link></nav></header>
+  return <header className="portal-header"><Link className="brand" to="/"><Logo /></Link><nav aria-label="Portal navigation"><a href="/login/student">Student sign in</a><NavLink to="/portal/faculty">Faculty demo</NavLink><a href={`/login/${section}`}>Open authenticated portal</a>{section === 'faculty' && <label className="stage-selector">Review as <select value={role} onChange={event => onRoleChange(event.target.value)}>{stages.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label>}<Link className="home-link" to="/">Home</Link></nav></header>
 }
 
 function FacultyPortal({ requests, setRequests }) {

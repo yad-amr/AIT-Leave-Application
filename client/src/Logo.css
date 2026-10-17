@@ -1,24 +1,9 @@
 .logo {
-  --logo-blue: #3366ff;
-  --logo-neutral: #202737;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  height: 32px;
   white-space: nowrap;
 }
-.logo-mark { width: 32px; height: 32px; flex: 0 0 32px; }
-.logo-tile { fill: var(--logo-blue); }
-.logo-check { stroke: #fff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-.logo-wordmark {
-  color: var(--logo-neutral);
-  font-family: 'Century Gothic', 'Avenir Next', ui-sans-serif, system-ui, sans-serif;
-  font-size: var(--font-card-title);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -.5px;
-}
-.intro .logo-wordmark { color: inherit; }
-@media (max-width: 640px) {
-  .logo-wordmark { display: none; }
-}
+.logo .logo-mark { width: 32px; height: 32px; flex: 0 0 32px; }
+.logo .logo-tile { fill: #3366ff; }
+.logo .logo-check { stroke: #fff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }

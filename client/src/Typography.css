@@ -144,3 +144,166 @@ html {
 .student-app .request-row { padding-block: 16px; }
 .student-app .request-row > *, .faculty-portal .faculty-request-top > * { min-width: 0; overflow-wrap: anywhere; }
 .student-app .review-banner { flex-wrap: wrap; gap: 14px; }
+
+/* Place tracking in the list's action column. */
+.student-app .list-header, .student-app .request-row {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, .65fr) 120px;
+}
+.student-app .row-action {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+.student-app .row-action:hover { background: #eef5f0; color: #237b59; }
+.student-app .row-action:focus-visible { outline: 2px solid #237b59; outline-offset: 2px; }
+.student-app .list-header > span:last-child { text-align: center; }
+@media (max-width: 760px) {
+  .student-app .list-header { display: none; }
+  .student-app .request-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; }
+}
+
+/* Dashboard headings use a compact scale rather than the landing-page hero scale. */
+.student-app .welcome-row h1, .faculty-portal .faculty-header h1 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  line-height: 1.25;
+  letter-spacing: -.025em;
+  margin-bottom: .5rem;
+}
+.student-app .section-heading h2, .faculty-portal .faculty-queue-heading h2 {
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  line-height: 1.3;
+  margin-bottom: .75rem;
+}
+.student-app .modal-heading h2, .password-modal h2 {
+  font-size: clamp(1.375rem, 2vw, 1.75rem);
+  line-height: 1.3;
+  margin-bottom: .75rem;
+}
+.student-app h3, .faculty-portal .faculty-request h3 {
+  font-size: 1.125rem;
+  line-height: 1.4;
+  margin-bottom: .5rem;
+}
+
+/* Sidebar controls and account information stay within their available space. */
+.student-app .sidebar { width: 248px; overflow-y: auto; overflow-x: hidden; }
+.student-app .sidebar[hidden] { display: none; }
+.student-app .main-area { min-width: 0; }
+.student-app.sidebar-open .main-area { width: calc(100% - 248px); margin-left: 248px; }
+.student-app.sidebar-closed .main-area { width: 100%; margin-left: 0; }
+.student-app .sidebar-toggle, .student-app .sidebar-close {
+  display: grid; place-items: center; flex-shrink: 0;
+  width: 40px; height: 40px; padding: 0; border: 1px solid #dce7df;
+  border-radius: 8px; background: #eef5f0; color: #237b59;
+  font-size: 24px; line-height: 1;
+}
+.student-app .sidebar-close { align-self: flex-end; margin-bottom: 12px; }
+.student-app .topbar { height: auto; min-height: 72px; gap: 16px; flex-wrap: wrap; padding-block: 12px; }
+.student-app .top-actions { margin-left: auto; gap: 12px; flex-wrap: wrap; }
+.student-app .profile-row { flex-wrap: wrap; gap: 8px; padding: 12px 4px; }
+.student-app .profile-copy { min-width: 0; }
+.student-app .profile-copy strong, .student-app .profile-copy small { overflow-wrap: anywhere; }
+.student-app .profile-dots { width: 100%; padding: 8px 12px; background: #eef5f0; color: #237b59; border-radius: 7px; text-align: center; font-size: 14px; letter-spacing: 0; }
+.faculty-portal .faculty-header-actions { min-width: 0; flex-wrap: wrap; }
+.faculty-portal .faculty-header-actions button { max-width: 100%; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .student-app.sidebar-open .sidebar { width: min(280px, 85vw); padding: 20px 16px; box-shadow: 8px 0 32px #1f293333; z-index: 10; }
+  .student-app.sidebar-open .main-area, .student-app.sidebar-closed .main-area { width: 100%; margin-left: 0; }
+  .student-app.sidebar-open .sidebar .brand { justify-content: flex-start; }
+  .student-app.sidebar-open .sidebar .brand > span:last-child { font-size: 18px; }
+  .student-app.sidebar-open .sidebar-label { font-size: 13px; }
+  .student-app.sidebar-open .nav-item { justify-content: flex-start; padding: 10px 12px; font-size: 16px; }
+  .student-app.sidebar-open .profile-copy { display: grid; }
+  .student-app.sidebar-open .profile-dots { display: block; }
+  .student-app .topbar .breadcrumb { display: none; }
+}
+
+/* Account actions follow the compact header controls. */
+.student-app .header-account-button,
+.faculty-portal .faculty-header > .faculty-header-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #dfe6e2;
+  border-radius: 7px;
+  background: #fff;
+  color: #586b60;
+  font-family: inherit;
+  font-size: .875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+  white-space: normal;
+}
+.student-app .header-account-button:hover,
+.faculty-portal .faculty-header > .faculty-header-actions button:hover {
+  background: #eef5f0;
+  border-color: #b8cebf;
+}
+.student-app .header-account-button:focus-visible,
+.faculty-portal .faculty-header > .faculty-header-actions button:focus-visible {
+  outline: 2px solid #237b59;
+  outline-offset: 3px;
+}
+
+.student-app .header-account-button,
+.faculty-portal .faculty-header > .faculty-header-actions button:first-child {
+  border: 0;
+}
+
+.student-app .top-actions { align-items: center; }
+.student-app .top-actions .bell-button, .student-app .top-actions .top-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 40px; width: 40px; height: 40px; padding: 0; margin: 0;
+  line-height: 1; align-self: center;
+}
+.student-app .bell-button svg { width: 20px; height: 20px; display: block; }
+.student-app .bell-button i { top: 8px; right: 9px; }
+.student-app .notice { align-items: center; gap: 12px; padding: 14px 16px; margin: 0 0 24px; line-height: 1.6; }
+.student-app .notice > button { flex-shrink: 0; align-self: center; }
+.student-app .student-profile { max-width: 900px; }
+.student-app .profile-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.student-app .profile-heading h1 { font-size: clamp(1.5rem, 2.5vw, 2rem); line-height: 1.25; margin: 0 0 8px; }
+.student-app .profile-heading p { margin-bottom: 8px; color: #626b7d; }
+.student-app .profile-avatar { display: grid; place-items: center; width: 64px; height: 64px; flex-shrink: 0; border-radius: 50%; background: #e9eee9; color: #237b59; font-size: 24px; font-weight: 700; }
+.student-app .profile-card { padding: 24px; margin-bottom: 20px; border: 1px solid #e9edf0; border-radius: 12px; background: #fff; }
+.student-app .profile-card h2 { font-size: 1.25rem; margin: 0 0 20px; line-height: 1.3; }
+.student-app .profile-card dl { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 0; }
+.student-app .profile-card dt { font-size: .875rem; color: #626b7d; margin-bottom: 4px; }
+.student-app .profile-card dd { margin: 0; overflow-wrap: anywhere; font-weight: 600; }
+.student-app .profile-card p { font-size: 1rem; color: #626b7d; line-height: 1.6; }
+.student-app .profile-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.student-app .profile-actions button { background: #eef5f0; color: #237b59; }
+@media (max-width: 600px) {
+  .student-app .profile-card dl { grid-template-columns: 1fr; }
+  .student-app .profile-card { padding: 20px; }
+}
+
+/* Shared logo overrides older brand text and divider rules. */
+.home .brand .logo, .shell .intro .brand .logo, .student-app .dashboard-brand .logo {
+  display: inline-flex; align-items: center; gap: 10px; padding: 0; border: 0;
+  height: auto; font-size: 20px; letter-spacing: 0;
+}
+.home .brand .logo-wordmark, .shell .intro .brand .logo-wordmark,
+.student-app .dashboard-brand .logo-wordmark {
+  display: inline; padding: 0; border: 0; color: #202737;
+  font-family: system-ui, sans-serif; font-size: 20px; font-weight: 800;
+  letter-spacing: -.5px; line-height: 1.2;
+}
+.student-app .dashboard-brand { background: none; padding: 0 8px; border: 0; height: auto; min-height: 40px; text-align: left; }
+.student-app .profile-back { margin-bottom: 24px; }
+.faculty-portal .faculty-brand { display: inline-flex; text-decoration: none; }
+.faculty-portal .faculty-brand .logo-wordmark { color: #202737; font-size: 20px; font-weight: 800; letter-spacing: -.5px; }
