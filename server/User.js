@@ -10,6 +10,7 @@ const schema = new mongoose.Schema({
   approval_role: { type: String, enum: [...approvalRoles, ...legacyApprovalRoles], select: false },
   approver_role: { type: String, enum: [...approvalRoles, ...legacyApprovalRoles], select: false },
   name: { type: String, required: true },
+  approver_role: { type: String, enum: ['class_teacher', 'hod', 'warden', 'director'] },
   college_id: { type: String, required: true },
   department: { type: String, trim: true, default: '' },
   active: { type: Boolean, default: true },
