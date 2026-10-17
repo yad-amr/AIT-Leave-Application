@@ -27,9 +27,9 @@ Open http://localhost:5173/login/student or http://localhost:5173/login/faculty.
 | Student 4 | `priya.nair_240104@aitpune.edu.in` | `CampusLeave123!` |
 | Student 5–10 | `kabir.patel_240105`, `meera.joshi_240106`, `ishaan.kulkarni_240107`, `sana.khan_240108`, `dev.malhotra_240109`, `tara.desai_240110` (append `@aitpune.edu.in`) | `CampusLeave123!` |
 | Faculty | `faculty@aitpune.edu.in` | `CampusLeave123!` |
-| Warden reviewers | `beauty.das_wardengirlshostel`, `umesh.kumar.singh_wardenboyshostel`, `kajal.khatri_wardenboyshostel`, `mangesh.uttam.amberkar_wardenboyshostel`, `vikas.d.ambre_wardenboyshostel` (append `@aitpune.edu.in`) | `CampusLeave123!` |
+| Warden reviewers | `beauty.das_wardengirlshostel@aitpune.edu.in`, `umesh.kumar.singh_wardenboyshostel@aitpune.edu.in`, `kajal.khatri_wardenboyshostel@aitpune.edu.in`, `mangesh.uttam.amberkar_wardenboyshostel@aitpune.edu.in`, `vikas.d.ambre_wardenboyshostel@aitpune.edu.in` | `CampusLeave123!` |
 | Counsellor reviewers | `anjali.desai@aitpune.edu.in`, `arjun.kulkarni@aitpune.edu.in` | `CampusLeave123!` |
-| HOD reviewers | `sushma.patil_hodentc`, `s.r.dhore_hodcomputerengg`, `sangeeta.jadhav_hodit`, `u.v.awasarmol_hodmechanicalengg`, `j.d.patil_hodare` (append `@aitpune.edu.in`) | `CampusLeave123!` |
+| HOD reviewers | `sushma.patil_hodentc@aitpune.edu.in`, `s.r.dhore_hodcomputerengg@aitpune.edu.in`, `sangeeta.jadhav_hodit@aitpune.edu.in`, `u.v.awasarmol_hodmechanicalengg@aitpune.edu.in`, `j.d.patil_hodare@aitpune.edu.in` | `CampusLeave123!` |
 | Joint Director | `sudip.khasnavis_jointdirector@aitpune.edu.in` | `CampusLeave123!` |
 | Other hostel faculty (not approvers) | `sandip.shivaji.mahadik_rectorboyshostel`, `dhanjee.singh.yadav_supervisorboyshostel`, `r.s.talikoti_supervisorboyshostel`, `amol.tejrao.mogal_supervisorboyshostel` (append `@aitpune.edu.in`) | `CampusLeave123!` |
 
