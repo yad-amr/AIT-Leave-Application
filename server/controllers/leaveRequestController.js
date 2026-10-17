@@ -24,7 +24,6 @@ function serializeRequest(request) {
     studentEmail: request.studentEmail,
     leaveType: request.leaveType,
     applicationType: request.applicationType || 'leave',
-    destination: request.destination || '',
     leaveAddress: request.leaveAddress || '',
     contactNumber: request.contactNumber || '',
     startDate: request.startDate,
@@ -82,7 +81,7 @@ function validProof(file) {
 
 async function createLeaveRequest(req, res, next) {
   try {
-    const { applicationType = 'leave', leaveType, startDate, endDate, reason, leaveAddress, departureTime, returnTime, destination, contactNumber, priority = 'normal' } = req.body
+    const { applicationType = 'leave', leaveType, startDate, endDate, reason, leaveAddress, departureTime, returnTime, contactNumber, priority = 'normal' } = req.body
     let { approverIds = {} } = req.body
     if (typeof approverIds === 'string') {
       try { approverIds = JSON.parse(approverIds) } catch { return res.status(400).json({ message: 'Choose your approvers again.' }) }
@@ -93,8 +92,11 @@ async function createLeaveRequest(req, res, next) {
     const records = await LeaveType.find({ active: true }).select('name').lean()
     const validTypes = records.length ? new Set(records.map((item) => item.name)) : allowedLeaveTypes
     if (applicationType === 'leave' && !validTypes.has(leaveType)) return res.status(400).json({ message: 'Choose a valid leave type.' })
-    if (applicationType === 'outpass' && (from.toDateString() !== to.toDateString() || !/^([01]\d|2[0-3]):[0-5]\d$/.test(departureTime || '') || !/^([01]\d|2[0-3]):[0-5]\d$/.test(returnTime || '') || departureTime >= returnTime || typeof destination !== 'string' || !destination.trim() || destination.trim().length > 200 || typeof contactNumber !== 'string' || !/^\+?[\d ()-]{7,20}$/.test(contactNumber.trim()))) {
-      return res.status(400).json({ message: 'Enter a same-day outpass with valid departure and return times, a destination, and a contact number.' })
+    if (typeof contactNumber !== 'string' || !/^\+?[\d ()-]{7,20}$/.test(contactNumber.trim())) {
+      return res.status(400).json({ message: 'Enter a valid phone number.' })
+    }
+    if (applicationType === 'outpass' && (from.toDateString() !== to.toDateString() || !/^([01]\d|2[0-3]):[0-5]\d$/.test(departureTime || '') || !/^([01]\d|2[0-3]):[0-5]\d$/.test(returnTime || '') || departureTime >= returnTime)) {
+      return res.status(400).json({ message: 'Enter a same-day outpass with valid departure and return times.' })
     }
     if (typeof leaveAddress !== 'string' || !leaveAddress.trim() || leaveAddress.trim().length > 1000) return res.status(400).json({ message: 'Enter a leave address of up to 1000 characters.' })
     if (!['normal', 'urgent'].includes(priority)) return res.status(400).json({ message: 'Choose normal or urgent priority.' })
@@ -136,8 +138,7 @@ async function createLeaveRequest(req, res, next) {
       leaveAddress: leaveAddress.trim(),
       departureTime: applicationType === 'outpass' ? departureTime : undefined,
       returnTime: applicationType === 'outpass' ? returnTime : undefined,
-      destination: applicationType === 'outpass' ? destination.trim() : '',
-      contactNumber: applicationType === 'outpass' ? contactNumber.trim() : '',
+      contactNumber: contactNumber.trim(),
       priority,
       approvers: assigned,
       history: [{ event: 'submitted', actorId: getStudentId(req.user).toString(), actorName: req.user.name || '', role: 'student', occurredAt: timestamp }],
@@ -322,9 +323,8 @@ async function downloadApprovedLetter(req, res, next) {
     pdf.font('Helvetica-Bold').text('End date: ', { continued: true }).font('Helvetica').text(new Date(request.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }))
     if (request.applicationType === 'outpass') {
       pdf.font('Helvetica-Bold').text('Departure / return: ', { continued: true }).font('Helvetica').text(`${request.departureTime} – ${request.returnTime}`)
-      pdf.font('Helvetica-Bold').text('Destination: ', { continued: true }).font('Helvetica').text(request.destination)
-      pdf.font('Helvetica-Bold').text('Contact: ', { continued: true }).font('Helvetica').text(request.contactNumber)
     }
+    if (request.contactNumber) pdf.font('Helvetica-Bold').text('Student phone number: ', { continued: true }).font('Helvetica').text(request.contactNumber)
     pdf.font('Helvetica-Bold').text('Priority: ', { continued: true }).font('Helvetica').text(request.priority === 'urgent' ? 'Urgent' : 'Normal')
     if (request.leaveAddress) pdf.font('Helvetica-Bold').text('Leave address: ', { continued: true }).font('Helvetica').text(request.leaveAddress)
     pdf.font('Helvetica-Bold').text('Reason: ', { continued: true }).font('Helvetica').text(request.reason)

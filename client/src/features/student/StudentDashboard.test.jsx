@@ -101,3 +101,12 @@ test('support links open help, expand troubleshooting, and return to dashboard',
   await user.click(screen.getByRole('button', { name: 'Support', exact: true }))
   expect(screen.getByRole('heading', { name: 'Help & support' })).toBeTruthy()
 })
+
+test('new leave request collects a phone number without a destination field', async () => {
+  setup([])
+  await screen.findByText('No requests in this view yet.')
+  await userEvent.click(screen.getByRole('button', { name: /New leave request/ }))
+  const dialog = screen.getByRole('dialog', { name: 'Request leave' })
+  expect(within(dialog).getByLabelText('Student phone number')).toBeTruthy()
+  expect(within(dialog).queryByLabelText('Destination')).toBeNull()
+})

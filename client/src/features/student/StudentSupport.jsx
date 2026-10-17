@@ -4,7 +4,7 @@ import './StudentSupport.css'
 const questions = [
   ['My requests are not loading', 'Check your internet connection and reload the page. If your session has expired, sign in again. If the problem continues, include the exact error message when contacting the college.'],
   ['My leave request is still pending', 'Open your request using the arrow in the Track request column. The approval progress shows the current reviewer. Contact your assigned reviewer for an update.'],
-  ['I cannot submit a leave request or outpass', 'Complete all required fields, including the leave address, dates, reason, and approvers. Outpasses also require departure and return times, a destination, and a valid contact number. Read the error shown in the form before trying again.'],
+  ['I cannot submit a leave request or outpass', 'Complete all required fields, including the leave address, dates, reason, phone number, and approvers. Outpasses also require departure and return times. Read the error shown in the form before trying again.'],
   ['How do I download my approval?', 'Open the request details after it is approved. Use the approval download action there. Leave requests need all four approvals; outpasses need the Warden approval.'],
   ['How do I change my password?', 'Open Profile and select Change password. Enter your current password and confirm the new password. After changing it, sign in again. If you cannot sign in, contact your college administrator.'],
 ]
