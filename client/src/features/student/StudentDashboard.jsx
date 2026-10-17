@@ -108,7 +108,7 @@ function RequestForm({ onClose, onSubmit, submitting, approvers, approversLoadin
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="request-modal" role="dialog" aria-modal="true" aria-labelledby="request-title">
         <div className="modal-heading"><div><span className="eyebrow">NEW APPLICATION</span><h2 id="request-title">Request leave</h2></div><button className="icon-button" onClick={onClose} aria-label="Close form">×</button></div>
-        <p className="modal-intro">Leave applications pass through four reviewers. Outpasses need only the selected Warden’s approval. Pending requests are deleted if approval is not complete within five days.</p>
+        <p className="modal-intro">Leave applications pass through four reviewers. Outpasses need only the selected Warden’s approval. Your submitted requests and approval history remain available after you sign out or the server restarts.</p>
         <form onSubmit={submit} className="request-form">
           <label>Application type<select name="applicationType" value={form.applicationType} onChange={(event) => setForm((current) => ({ ...current, applicationType: event.target.value, endDate: event.target.value === 'outpass' ? current.startDate : current.endDate }))}><option value="leave">Leave application · four approvals</option><option value="outpass">Outpass · Warden approval only</option></select></label>
           {form.applicationType === 'leave' && <label>Leave type<select name="leaveType" value={form.leaveType} onChange={update}>{leaveTypes.map((type) => <option key={type}>{type}</option>)}</select></label>}

@@ -1,6 +1,6 @@
 # Smart Leave Management System
 
-Student and faculty sign-in, leave applications, and outpasses built with React, Vite, Express, and MongoDB/Mongoose. Leave applications require four sequential approvals; an outpass requires the selected Warden only. Pending requests expire and are removed after five days. Students can mark an application normal or urgent.
+Student and faculty sign-in, leave applications, and outpasses built with React, Vite, Express, and MongoDB/Mongoose. Leave applications require four sequential approvals; an outpass requires the selected Warden only. Requests and approval history are stored in MongoDB and remain available across server restarts. Students can mark an application normal or urgent.
 
 ## Local setup
 
@@ -67,7 +67,7 @@ Accounts must already exist in MongoDB and have a `passwordHash`. The login API 
 - `GET /api/leave-requests` — lists the current student's requests.
 - `POST /api/leave-requests` — submits a student leave request.
 - `GET /api/leave-requests/:id/pdf` — downloads the approval PDF after the relevant approval path completes, including reviewer names and IST timestamps.
-- Pending requests are removed after five days if the required approvals are not complete. Outpass approval PDFs are available immediately after Warden approval.
+- Leave requests and approval history remain stored in MongoDB, including pending requests, until explicitly cancelled or changed through the approval workflow. Outpass approval PDFs are available immediately after Warden approval.
 - `GET /api/faculty/approvals` and `POST /api/faculty/approvals/:id/decision` — assigned faculty review and decide requests in sequence.
 
 Leave requests begin at `pending_warden` and proceed Warden → Counsellor → HOD → Joint Director. Outpasses begin at `pending_warden` and become approved after the Warden's decision. Urgent items are sorted to the top of faculty queues. The API derives the student identity from the signed session and checks ownership for reads and PDF downloads. Session revocations and rate limits are in process memory, so use one API process for this prototype. Production hosting needs HTTPS, same-origin routing for `/api`, and SPA fallback for the client.

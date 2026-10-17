@@ -10,7 +10,7 @@ The Express API uses MongoDB/Mongoose for users and leave requests. The browser 
 - `POST /api/leave-requests` — submit `leaveType`, `startDate`, `endDate`, `reason`, and `approverIds` for Warden, Counsellor, and HOD. The Joint Director is assigned by the server.
 - `GET /api/leave-requests/:id/pdf` — download the approval letter after required approvals are complete. Leave PDFs contain all four approvals; outpass PDFs contain the Warden approval and outpass times.
 - Requests accept `applicationType: "leave" | "outpass"` and `priority: "normal" | "urgent"`. A leave uses four approval stages. An outpass needs only a Warden and includes same-day departure and return times.
-- Pending requests are automatically deleted after five days using MongoDB TTL cleanup. The API also removes expired requests when loading the student list or faculty queue.
+- Leave requests and their approval history are stored in MongoDB and are not automatically deleted. They remain available to students and assigned faculty after server restarts.
 
 ## Faculty endpoints
 
@@ -23,6 +23,6 @@ Faculty users who may review leave requests have an `approvalRole` of `warden`, 
 
 ## Run locally
 
-From the repository root, run `npm run setup`, copy `server/.env.example` to `server/.env`, and set a random `SESSION_SECRET` of at least 32 characters. Set `MONGODB_URI` to a persistent local MongoDB or Atlas connection string if requests must survive server restarts. A blank URI in local dev uses temporary MongoDB. Then run `npm run dev`. The Vite client proxies `/api` to port 3001, so the browser and HTTP-only session cookie use the same origin.
+From the repository root, run `npm run setup`, copy `server/.env.example` to `server/.env`, and set a random `SESSION_SECRET` of at least 32 characters. Requests are stored in persistent MongoDB; the default `MONGODB_URI` is `mongodb://localhost:27017/leave_management`. Ensure that MongoDB is running, or set `MONGODB_URI` to your persistent MongoDB server connection string. Then run `npm run dev`. The Vite client proxies `/api` to port 3001, so the browser and HTTP-only session cookie use the same origin.
 
 For full authentication and environment setup, see the root `README.md`.

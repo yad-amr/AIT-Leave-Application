@@ -52,7 +52,6 @@ const leaveRequestSchema = new mongoose.Schema({
     },
     message: 'The approver list must match the application type.',
   } },
-  expiresAt: { type: Date, default: null },
   status: {
     type: String,
     enum: ['pending_warden', 'pending_counsellor', 'pending_hod', 'pending_joint_director', 'approved', 'rejected', 'cancelled'],
@@ -64,6 +63,5 @@ const leaveRequestSchema = new mongoose.Schema({
 
 leaveRequestSchema.index({ studentId: 1, createdAt: -1 })
 leaveRequestSchema.index({ status: 1, 'approvers.userId': 1 })
-leaveRequestSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0, partialFilterExpression: { expiresAt: { $type: 'date' } } })
 
 module.exports = mongoose.model('LeaveRequest', leaveRequestSchema)

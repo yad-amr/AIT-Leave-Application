@@ -7,22 +7,6 @@ const mongoose = require('mongoose')
 const approvalRoles = ['warden', 'counsellor', 'hod', 'joint_director']
 const nextStage = { warden: 'counsellor', counsellor: 'hod', hod: 'joint_director', joint_director: null }
 const allowedLeaveTypes = new Set(['Personal leave', 'Medical leave', 'Academic leave', 'Other'])
-const requestLifetimeMs = 5 * 24 * 60 * 60 * 1000
-const requestLifetimeDays = 5
-
-async function deleteExpiredPendingRequests(filter = {}) {
-  const now = new Date()
-  const cutoff = new Date(now.getTime() - requestLifetimeMs)
-  await LeaveRequest.deleteMany({
-    ...filter,
-    status: { $regex: '^pending_' },
-    $or: [
-      { expiresAt: { $lte: now } },
-      { expiresAt: { $exists: false }, createdAt: { $lte: cutoff } },
-      { expiresAt: null, createdAt: { $lte: cutoff } },
-    ],
-  })
-}
 
 function getStudentId(user) {
   return user?.id || user?._id || user?.userId || user?.sub
@@ -52,7 +36,6 @@ function serializeRequest(request) {
     studentResponse: request.studentResponse || null,
     attachment: request.attachment?.name ? { name: request.attachment.name, mime: request.attachment.mime, size: request.attachment.size } : null,
     priority: request.priority || 'normal',
-    expiresAt: request.expiresAt || null,
     status: request.status,
     approvers: request.approvers || [],
     approvalHistory: request.approvalHistory || [],
@@ -157,7 +140,6 @@ async function createLeaveRequest(req, res, next) {
       contactNumber: applicationType === 'outpass' ? contactNumber.trim() : '',
       priority,
       approvers: assigned,
-      expiresAt: new Date(timestamp.getTime() + requestLifetimeMs),
       history: [{ event: 'submitted', actorId: getStudentId(req.user).toString(), actorName: req.user.name || '', role: 'student', occurredAt: timestamp }],
       ...(req.file ? { attachment: { name: safeName, mime: req.file.mimetype, size: req.file.size, data: req.file.buffer } } : {}),
     })
@@ -169,7 +151,6 @@ async function createLeaveRequest(req, res, next) {
 
 async function listMyLeaveRequests(req, res, next) {
   try {
-    await deleteExpiredPendingRequests({ studentId: getStudentId(req.user).toString() })
     const requests = await LeaveRequest.find({ studentId: getStudentId(req.user).toString() }).select('-attachment.data').sort({ createdAt: -1 }).lean()
     return res.json({ requests: requests.map(serializeRequest) })
   } catch (error) {
@@ -180,7 +161,6 @@ async function listMyLeaveRequests(req, res, next) {
 async function getMyLeaveSummary(req, res, next) {
   try {
     const studentId = getStudentId(req.user).toString()
-    await deleteExpiredPendingRequests({ studentId })
     const [total, pending, approved, rejected] = await Promise.all([
       LeaveRequest.countDocuments({ studentId }),
       LeaveRequest.countDocuments({ studentId, status: { $regex: '^pending_' } }),
@@ -197,7 +177,6 @@ async function listAssignedApprovals(req, res, next) {
   try {
     const role = req.user.approvalRole
     if (req.user.role !== 'faculty' || !approvalRoles.includes(role)) return res.status(403).json({ message: 'This faculty account is not assigned an approval role.' })
-    await deleteExpiredPendingRequests()
     const requests = await LeaveRequest.find({
       status: `pending_${role}`,
       approvers: { $elemMatch: { role, userId: String(req.user.sub) } },
@@ -220,22 +199,15 @@ async function decideLeaveRequest(req, res, next) {
 
     const approver = await User.findById(req.user.sub).select('name role approvalRole').lean()
     if (!approver || approver.role !== 'faculty' || approver.approvalRole !== role) return res.status(403).json({ message: 'This account is no longer assigned to that approval role.' })
-    await deleteExpiredPendingRequests({ _id: req.params.id })
     const decisionAt = new Date()
-    const fiveDaysAgo = new Date(decisionAt.getTime() - requestLifetimeDays * 24 * 60 * 60 * 1000)
     const isOutpass = (await LeaveRequest.findById(req.params.id).select('applicationType').lean())?.applicationType === 'outpass'
     const status = decision === 'needs_information' ? `pending_${role}` : decision === 'rejected' ? 'rejected' : isOutpass || !nextStage[role] ? 'approved' : `pending_${nextStage[role]}`
     const request = await LeaveRequest.findOneAndUpdate({
       _id: req.params.id,
       status: `pending_${role}`,
       approvers: { $elemMatch: { role, userId: String(req.user.sub) } },
-      $or: [
-        { expiresAt: { $gt: decisionAt } },
-        { expiresAt: { $exists: false }, createdAt: { $gt: fiveDaysAgo } },
-        { expiresAt: null, createdAt: { $gt: fiveDaysAgo } },
-      ],
     }, {
-      $set: { status, ...(status === 'approved' || status === 'rejected' ? { expiresAt: null } : {}) },
+      $set: { status },
       ...(decision === 'needs_information' ? { $unset: { studentResponse: 1 } } : {}),
       $push: {
         approvalHistory: { role, approverId: String(req.user.sub), approverName: approver.name, decision, comment: comment.trim(), decidedAt: decisionAt },
@@ -294,7 +266,7 @@ async function cancelMyLeaveRequest(req, res, next) {
       status: 'pending_warden',
       'approvalHistory.0': { $exists: false },
     }, {
-      $set: { status: 'cancelled', expiresAt: null },
+      $set: { status: 'cancelled' },
       $push: { history: { event: 'cancelled', actorId: studentId, actorName: req.user.name || '', role: 'student', occurredAt: timestamp } },
     }, { new: true, runValidators: true }).select('-attachment.data').lean()
     if (!request) return res.status(409).json({ message: 'A request can only be cancelled before its first approver records a decision.' })

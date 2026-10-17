@@ -11,14 +11,6 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' }).format(new Date(value))
 }
 
-function deadlineLabel(value, now) {
-  if (!value) return 'Deadline: 5 days from submission'
-  const remaining = new Date(value).getTime() - now
-  if (remaining <= 0) return 'Deadline passed · request expiring'
-  const hours = Math.ceil(remaining / 3600000)
-  return hours < 24 ? `Respond within ${hours}h` : `Respond by ${formatDate(value)}`
-}
-
 export default function FacultyDashboard({ user, onSignOut }) {
   const [requests, setRequests] = useState([])
   const [comments, setComments] = useState({})
@@ -29,7 +21,6 @@ export default function FacultyDashboard({ user, onSignOut }) {
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [refreshing, setRefreshing] = useState(false)
-  const [clock, setClock] = useState(() => new Date().getTime())
   const [view, setView] = useState('queue')
   const [history, setHistory] = useState([])
   const role = user?.approvalRole
@@ -50,11 +41,6 @@ export default function FacultyDashboard({ user, onSignOut }) {
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [loadQueue])
-
-  useEffect(() => {
-    const timer = setInterval(() => setClock(new Date().getTime()), 60000)
-    return () => clearInterval(timer)
-  }, [])
 
   async function refreshQueue() {
     setRefreshing(true)
@@ -81,8 +67,6 @@ export default function FacultyDashboard({ user, onSignOut }) {
     return matchesSearch && (priorityFilter === 'all' || (request.priority || 'normal') === priorityFilter)
   }), [requests, search, priorityFilter])
   const urgentCount = requests.filter((request) => request.priority === 'urgent').length
-  const expiringCount = requests.filter((request) => request.expiresAt && new Date(request.expiresAt).getTime() - clock <= 24 * 3600000).length
-
   async function decide(request, decision) {
     const comment = (comments[request.id] || '').trim()
     if (decision !== 'approved' && comment.length < 3) {
@@ -115,11 +99,11 @@ export default function FacultyDashboard({ user, onSignOut }) {
     {notice && <p className="faculty-notice" role="status">{notice}</p>}
     <section className="faculty-queue"><div className="faculty-queue-heading"><div><span>YOUR WORK</span><h2>{view === 'queue' ? 'Review dashboard' : 'Decision history'}</h2></div><div className="faculty-header-actions"><button type="button" onClick={() => { setView('queue'); refreshQueue() }}>Pending queue</button><button type="button" onClick={() => { setView('history'); loadHistory() }}>My decisions</button><button type="button" className="faculty-refresh" onClick={refreshQueue} disabled={refreshing}>{refreshing ? 'Refreshing…' : 'Refresh queue ↻'}</button></div></div>
       {view === 'queue' ? <>
-      <div className="faculty-metrics"><article><span>Waiting for you</span><strong>{requests.length}</strong></article><article><span>Urgent</span><strong>{urgentCount}</strong></article><article><span>Deadline within 24h</span><strong>{expiringCount}</strong></article></div>
+      <div className="faculty-metrics"><article><span>Waiting for you</span><strong>{requests.length}</strong></article><article><span>Urgent</span><strong>{urgentCount}</strong></article></div>
       <div className="faculty-filters"><input aria-label="Search requests" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search student, reference, or reason"/><select aria-label="Filter by priority" value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}><option value="all">All priorities</option><option value="urgent">Urgent only</option><option value="normal">Normal only</option></select></div>
       {loading ? <p className="faculty-empty">Loading assigned requests…</p> : requests.length === 0 ? <p className="faculty-empty">No requests are waiting for your review.</p> : visibleRequests.length === 0 ? <p className="faculty-empty">No requests match these filters.</p> : visibleRequests.map((request) => <article className={`faculty-request ${request.priority === 'urgent' ? 'faculty-request-urgent' : ''}`} key={request.id}>
         <div className="faculty-request-top"><div><span className="faculty-reference">{request.reference} · {request.applicationType === 'outpass' ? 'OUTPASS' : 'LEAVE'}</span><h3>{request.studentName || 'Student'} <small>{request.studentEmail}</small></h3></div><div className="faculty-badges"><span className={`faculty-priority ${request.priority || 'normal'}`}>{request.priority === 'urgent' ? 'Urgent' : 'Normal'}</span><span className="faculty-stage">{stageLabels[role]}</span></div></div>
-        <div className="faculty-request-info"><div><span>APPLICATION</span><strong>{request.applicationType === 'outpass' ? 'Outpass' : request.leaveType}</strong></div><div><span>DATES</span><strong>{formatDate(request.startDate)} – {formatDate(request.endDate)}</strong></div>{request.applicationType === 'outpass' && <div><span>OUTPASS TIME</span><strong>{request.departureTime} – {request.returnTime}</strong></div>}<div><span>RESPONSE DEADLINE</span><strong>{deadlineLabel(request.expiresAt, clock)}</strong></div></div>
+        <div className="faculty-request-info"><div><span>APPLICATION</span><strong>{request.applicationType === 'outpass' ? 'Outpass' : request.leaveType}</strong></div><div><span>DATES</span><strong>{formatDate(request.startDate)} – {formatDate(request.endDate)}</strong></div>{request.applicationType === 'outpass' && <div><span>OUTPASS TIME</span><strong>{request.departureTime} – {request.returnTime}</strong></div>}</div>
         <p className="faculty-reason">{request.reason}</p>{request.leaveAddress && <p className="faculty-reason" style={{ whiteSpace: 'pre-wrap' }}><strong>Leave address:</strong> {request.leaveAddress}</p>}{request.attachment && <a className="faculty-proof" href={`/api/faculty/approvals/${request.id}/proof`}>Supporting proof: {request.attachment.name}</a>}{request.studentResponse?.message && <p className="faculty-student-response"><strong>Student response:</strong> {request.studentResponse.message}</p>}
         <div className="faculty-assignees">{(request.approvers || []).map((person) => <span key={person.role}>{stageLabels[person.role]}: {person.name}</span>)}</div>
         <label className="faculty-comment">Decision note <small>Required for rejection or information requests; shared with the student.</small><textarea rows="2" maxLength="1000" value={comments[request.id] || ''} onChange={(event) => setComments((current) => ({ ...current, [request.id]: event.target.value }))} placeholder="Add a reason or guidance for the student" /></label>
