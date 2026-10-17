@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, NavLink, useParams } from 'react-router-dom'
-import './App.css'
+import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom'
+import './DemoPortal.css'
 
 const storageKey = 'smart-leave-demo-requests'
 const stages = [['warden', 'Warden'], ['counsellor', 'Counsellor'], ['hod', 'HOD'], ['joint_director', 'Joint Director']]
@@ -24,8 +24,8 @@ const initialRequests = () => [{
 
 function Home() {
   return <div className="home">
-    <header className="home-nav"><Link className="brand" to="/">SL <span>SMART LEAVE</span></Link><nav aria-label="Portal navigation"><Link to="/portal/student">Student portal</Link><Link className="button-link" to="/portal/faculty">Faculty portal</Link></nav></header>
-    <main className="home-hero"><p className="eyebrow">ARMY INSTITUTE OF TECHNOLOGY · PUNE</p><h1>Leave, without the paperwork.</h1><p>One clear process for student leave requests, approvals and updates.</p><div className="hero-actions"><Link className="button-link" to="/portal/student">Open student portal <span aria-hidden="true">→</span></Link><Link className="secondary-link" to="/portal/faculty">Open faculty portal</Link></div><p className="hero-caption">One request. Four approvals. Every update in one place.</p></main>
+    <header className="home-nav"><Link className="brand" to="/">SL <span>SMART LEAVE</span></Link><nav aria-label="Portal navigation"><a href="/login/student">Student sign in</a><a href="/login/faculty">Faculty sign in</a><Link to="/portal/student">Student demo</Link></nav></header>
+    <main className="home-hero"><p className="eyebrow">ARMY INSTITUTE OF TECHNOLOGY · PUNE</p><h1>Leave, without the paperwork.</h1><p>One clear process for student leave requests, approvals and updates.</p><div className="hero-actions"><a className="button-link" href="/login/student">Student sign in <span aria-hidden="true">→</span></a><a className="secondary-link" href="/login/faculty">Faculty sign in</a></div><p className="hero-caption">One request. Four approvals. Every update in one place. <Link to="/portal/student">Explore the local demo</Link></p></main>
     <footer className="site-footer">
       <div className="footer-main">
         <section><h2>Contact Us</h2><a href="https://www.aitpune.com/Contact-Us.aspx">For an Enquiry</a><p>Dighi Hills, Pune-411015<br /><a href="tel:8956018951">8956018951/ 52/ 53/ 54</a><br /><a href="mailto:ait@aitpune.edu.in">ait[at]aitpune[dot]edu[dot]in</a></p><h3>Follow Us</h3><div className="social-links"><a href="https://www.aitpune.com/">AIT Pune</a><a href="https://www.aitpune.com/clubs.aspx">Campus clubs</a></div></section>
@@ -115,7 +115,7 @@ function Certificate({ request, onBack }) {
 }
 
 function PortalHeader({ section, role, onRoleChange }) {
-  return <header className="portal-header"><Link className="brand" to="/">SL <span>SMART LEAVE</span></Link><nav aria-label="Portal navigation"><NavLink to="/portal/student">Student portal</NavLink><NavLink to="/portal/faculty">Faculty portal</NavLink>{section === 'faculty' && <label className="stage-selector">Review as <select value={role} onChange={event => onRoleChange(event.target.value)}>{stages.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label>}<Link className="home-link" to="/">Home</Link></nav></header>
+  return <header className="portal-header"><Link className="brand" to="/">SL <span>SMART LEAVE</span></Link><nav aria-label="Portal navigation"><NavLink to="/portal/student">Student demo</NavLink><NavLink to="/portal/faculty">Faculty demo</NavLink><a href={`/login/${section}`}>Open authenticated portal</a>{section === 'faculty' && <label className="stage-selector">Review as <select value={role} onChange={event => onRoleChange(event.target.value)}>{stages.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label>}<Link className="home-link" to="/">Home</Link></nav></header>
 }
 
 function FacultyPortal({ requests, setRequests }) {
@@ -200,9 +200,24 @@ function Portal({ section }) {
     : <StudentPortal requests={requests} setRequests={setRequests} />
 }
 
-export { Home, PortalRoute }
+function App() {
+  return <BrowserRouter><Routes>
+    <Route path="/" element={<Home />} />
+    <Route path="/portal/:section" element={<PortalRoute />} />
+    <Route path="/:role/dashboard" element={<LegacyPortalRoute />} />
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes></BrowserRouter>
+}
+
 function PortalRoute() {
   const { section } = useParams()
   if (!['student', 'faculty'].includes(section)) return <Navigate to="/" replace />
   return <Portal key={section} section={section} />
 }
+
+function LegacyPortalRoute() {
+  const { role } = useParams()
+  return <Navigate to={role === 'faculty' ? '/portal/faculty' : '/portal/student'} replace />
+}
+
+export default App
