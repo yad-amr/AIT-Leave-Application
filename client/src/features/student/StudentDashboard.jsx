@@ -140,7 +140,7 @@ function AppIcon({ name }) {
 }
 
 function StudentDashboard({ user, onSignOut }) {
-  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 760)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [requests, setRequests] = useState([])
   const [approvers, setApprovers] = useState({ warden: [], counsellor: [], hod: [], jointDirector: null })
   const [leaveTypes, setLeaveTypes] = useState(['Personal leave', 'Medical leave', 'Academic leave', 'Other'])
@@ -329,7 +329,7 @@ function StudentDashboard({ user, onSignOut }) {
         <button className="sidebar-close" type="button" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">×</button>
         <button type="button" className="brand dashboard-brand" aria-label="Smart Leave dashboard home" onClick={() => setActiveNav('Overview')}><Logo /></button>
         <div className="sidebar-label">STUDENT PORTAL</div>
-        <nav className="side-nav" aria-label="Main navigation">{[['Overview', 'grid'], ['My requests', 'file'], ['Leave calendar', 'calendar'], ['Profile', 'profile']].map(([label, icon]) => <button key={label} className={`nav-item ${activeNav === label ? 'active' : ''}`} title={label} onClick={() => { setActiveNav(label); if (label === 'My requests') requestAnimationFrame(() => document.getElementById('requests')?.scrollIntoView({ behavior: 'smooth' })); else if (label === 'Overview') window.scrollTo({ top: 0, behavior: 'smooth' }); else if (label === 'Leave calendar') setNotice('Leave calendar will be available when the college calendar is connected.') }}><AppIcon name={icon} />{label}</button>)}</nav>
+        <nav className="side-nav" aria-label="Main navigation">{[['Overview', 'grid'], ['Profile', 'profile']].map(([label, icon]) => <button key={label} className={`nav-item ${activeNav === label ? 'active' : ''}`} title={label} onClick={() => { setActiveNav(label); if (label === 'Overview') window.scrollTo({ top: 0, behavior: 'smooth' }) }}><AppIcon name={icon} />{label}</button>)}</nav>
         <div className="sidebar-bottom"><div className="help-card"><div className="help-icon"><AppIcon name="help" /></div><strong>Need a hand?</strong><p>Our student support team is here for you.</p><button onClick={() => setNotice('Contact your student support office for assistance.')}>Get support <span>→</span></button></div><button className="profile-row" onClick={onSignOut} title="Sign out" aria-label="Sign out"><span className="avatar">{initials}</span><span className="profile-copy"><strong>{studentName}</strong><small>Student · {user?.email}</small></span><span className="profile-dots">Sign out</span></button></div>
       </aside>
       <main className="main-area" id="overview">
