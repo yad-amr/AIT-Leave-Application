@@ -4,60 +4,55 @@ html {
   box-sizing: border-box;
 }
 *, *::before, *::after { box-sizing: inherit; }
-
-/* Keep the established page colors while sharing an accessible type scale. */
-.home, .shell {
+.shell {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 1.0625rem;
   line-height: 1.6;
 }
-.home .home-hero h1, .shell .intro h1, .home .hero-title, .shell .hero-title {
+.shell .intro h1, .shell .hero-title {
   font-size: clamp(2.5rem, 5vw, 4.5rem);
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -.02em;
   margin-bottom: 1.5rem;
 }
-.home h2, .shell .card h2 {
+.shell .card h2 {
   font-size: clamp(2rem, 3.5vw, 2.75rem);
   font-weight: 700;
   line-height: 1.2;
   margin-top: 0;
   margin-bottom: 1.25rem;
 }
-.home h3, .shell h3 {
+.shell h3 {
   font-size: 1.375rem;
   font-weight: 600;
   line-height: 1.3;
   margin-bottom: .75rem;
 }
-.home .home-hero > p:not(.eyebrow):not(.hero-caption),
 .shell .intro p:not(.eyebrow):not(.footnote), .shell .card > .muted {
   font-size: 1.0625rem;
   line-height: 1.6;
   margin-bottom: 1.5rem;
 }
-.home .button-link, .shell .card form > button, .home .btn-cta, .shell .btn-cta {
+.shell .card form > button, .shell .btn-cta {
   font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: .02em;
 }
-.home .time-stamp, .home .track-tag, .shell .time-stamp, .shell .track-tag {
+.shell .time-stamp, .shell .track-tag {
   font-family: monospace;
   font-size: .875rem;
   font-weight: 600;
 }
 .shell input, .shell select, .shell textarea { font-size: 1rem; }
-.home small, .shell small, .home .footer-text, .shell .footer-text,
-.home .copyright, .home .hero-caption, .shell .card .security, .shell .intro .footnote {
+.shell small, .shell .footer-text, .shell .card .security, .shell .intro .footnote {
   font-size: .8125rem;
   line-height: 1.6;
   color: var(--muted);
 }
 .shell .hint, .shell .error { font-size: .875rem; }
-/* Footer headings remain compact so the contact columns stay easy to scan. */
-.home .footer-main h2, .home .footer-main h3 { font-size: 1.0625rem; margin: 0 0 1.25rem; }
-.home .footer-main a, .home .footer-main section > p { font-size: .875rem; }
+
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
@@ -291,14 +286,11 @@ html {
   .student-app .profile-card dl { grid-template-columns: 1fr; }
   .student-app .profile-card { padding: 20px; }
 }
-
-/* Shared logo overrides older brand text and divider rules. */
-.home .brand .logo, .shell .intro .brand .logo, .student-app .dashboard-brand .logo {
+.shell .intro .brand .logo, .student-app .dashboard-brand .logo {
   display: inline-flex; align-items: center; gap: 10px; padding: 0; border: 0;
   height: auto; font-size: 20px; letter-spacing: 0;
 }
-.home .brand .logo-wordmark, .shell .intro .brand .logo-wordmark,
-.student-app .dashboard-brand .logo-wordmark {
+.shell .intro .brand .logo-wordmark, .student-app .dashboard-brand .logo-wordmark {
   display: inline; padding: 0; border: 0; color: #202737;
   font-family: system-ui, sans-serif; font-size: 20px; font-weight: 800;
   letter-spacing: -.5px; line-height: 1.2;
@@ -329,4 +321,38 @@ html {
   margin: 0;
   font-size: 26px;
   line-height: 1;
+}
+
+.student-app .semester-pill {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #46574d;
+  gap: 8px;
+}
+.student-app .semester-pill i {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  background: #237b59;
+}
+
+/* Request values must remain readable on the light detail dialog. */
+.student-app .detail-modal {
+  color-scheme: light;
+  background: #fff;
+  color: #202737;
+}
+.student-app .detail-modal .detail-fields > div { min-width: 0; gap: 8px; }
+.student-app .detail-modal .detail-label { color: #526157; font-weight: 700; }
+.student-app .detail-modal .detail-fields p,
+.student-app .detail-modal .detail-fields strong {
+  display: block;
+  margin: 0;
+  color: #202737;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

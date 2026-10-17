@@ -42,3 +42,24 @@ test('expired sessions redirect to the matching login', async () => {
   await screen.findByLabelText('College email address')
   expect(window.location.pathname).toBe('/login/faculty')
 })
+
+
+test('root opens login directly and students can switch to faculty sign in', async () => {
+  window.history.replaceState({}, '', '/')
+  mock(() => ({ domain: 'aitpune.edu.in' }))
+  render(<App />)
+  await screen.findByLabelText('College email address')
+  expect(window.location.pathname).toBe('/login/student')
+  expect(screen.queryByText('Leave, without the paperwork.')).toBeNull()
+  await userEvent.click(screen.getByRole('link', { name: 'Faculty' }))
+  expect(window.location.pathname).toBe('/login/faculty')
+  expect(screen.getByLabelText('Password')).toBeTruthy()
+})
+
+test('old faculty portal URL opens faculty login', async () => {
+  window.history.replaceState({}, '', '/portal/faculty')
+  mock(() => ({ domain: 'aitpune.edu.in' }))
+  render(<App />)
+  await screen.findByLabelText('College email address')
+  expect(window.location.pathname).toBe('/login/faculty')
+})

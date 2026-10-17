@@ -110,3 +110,16 @@ test('new leave request collects a phone number without a destination field', as
   expect(within(dialog).getByLabelText('Student phone number')).toBeTruthy()
   expect(within(dialog).queryByLabelText('Destination')).toBeNull()
 })
+
+for (const applicationType of ['leave', 'outpass']) {
+  test(`${applicationType} details display the saved address and reason`, async () => {
+    setup([{ ...request, applicationType, status: 'pending_warden', leaveAddress: 'Pune city airport.\nTerminal 1', reason: 'Personal family visit', departureTime: '09:00', returnTime: '17:00' }])
+    await screen.findByRole('button', { name: 'View LR-ONE' })
+    await userEvent.click(screen.getByRole('button', { name: 'View LR-ONE' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'Request details' }))
+    expect(dialog.getByText('Pune city airport. Terminal 1')).toBeTruthy()
+    expect(dialog.getByText('Personal family visit')).toBeTruthy()
+    expect(dialog.getByText('LEAVE ADDRESS')).toBeTruthy()
+    expect(dialog.getByText('REASON')).toBeTruthy()
+  })
+}

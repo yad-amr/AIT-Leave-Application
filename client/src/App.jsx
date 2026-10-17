@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import StudentDashboard from './features/student/StudentDashboard.jsx'
 import FacultyDashboard from './features/faculty/FacultyDashboard.jsx'
-import DemoPortal from './DemoPortal.jsx'
 import './App.css'
 import './Typography.css'
 
@@ -134,12 +133,16 @@ function AuthenticatedApp() {
   }, [])
   if (error) return <p role="alert">{error}</p>
   if (!domain) return <p role="status">Connecting to Smart Leave…</p>
-  return <BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
+  return <BrowserRouter><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="/portal/:role" element={<LegacyLoginRedirect />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
 }
 
 function App() {
-  const pathname = window.location.pathname
-  return pathname === '/' || pathname.startsWith('/portal/') ? <DemoPortal /> : <AuthenticatedApp />
+  return <AuthenticatedApp />
+}
+
+function LegacyLoginRedirect() {
+  const { role } = useParams()
+  return <Navigate to={role === 'faculty' ? '/login/faculty' : '/login/student'} replace />
 }
 
 function RoleLogin({ domain }) {

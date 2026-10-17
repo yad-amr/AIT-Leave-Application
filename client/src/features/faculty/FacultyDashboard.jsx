@@ -95,7 +95,7 @@ export default function FacultyDashboard({ user, onSignOut }) {
   }
 
   return <main className="faculty-portal">
-    <header className="faculty-header"><div><a className="faculty-brand" href="/" aria-label="Smart Leave home"><Logo /></a><h1>{stageLabels[role] || 'Faculty'} approvals</h1><p>Signed in as {user?.name} · {user?.email}</p></div><div className="faculty-header-actions"><button type="button" onClick={() => setShowPasswordChange(true)}>Change password</button><button type="button" onClick={onSignOut}>Sign out</button></div></header>
+    <header className="faculty-header"><div><a className="faculty-brand" href="/faculty/dashboard" aria-label="Smart Leave dashboard home"><Logo /></a><h1>{stageLabels[role] || 'Faculty'} approvals</h1><p>Signed in as {user?.name} · {user?.email}</p></div><div className="faculty-header-actions"><button type="button" onClick={() => setShowPasswordChange(true)}>Change password</button><button type="button" onClick={onSignOut}>Sign out</button></div></header>
     {notice && <p className="faculty-notice" role="status">{notice}</p>}
     <section className="faculty-queue"><div className="faculty-queue-heading"><div><span>YOUR WORK</span><h2>{view === 'queue' ? 'Review dashboard' : 'Decision history'}</h2></div><div className="faculty-header-actions"><button type="button" onClick={() => { setView('queue'); refreshQueue() }}>Pending queue</button><button type="button" onClick={() => { setView('history'); loadHistory() }}>My decisions</button><button type="button" className="faculty-refresh" onClick={refreshQueue} disabled={refreshing}>{refreshing ? 'Refreshing…' : 'Refresh queue ↻'}</button></div></div>
       {view === 'queue' ? <>

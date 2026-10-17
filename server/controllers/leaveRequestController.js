@@ -1,7 +1,7 @@
 const LeaveRequest = require('../models/LeaveRequest')
 const LeaveType = require('../models/LeaveType')
 const User = require('../User')
-const PDFDocument = require('pdfkit')
+const { createApprovalPdf } = require('../services/approvalPdf')
 const mongoose = require('mongoose')
 
 const approvalRoles = ['warden', 'counsellor', 'hod', 'joint_director']
@@ -289,12 +289,6 @@ async function downloadMyProof(req, res, next) {
   } catch (error) { return next(error) }
 }
 
-function formatTimestamp(value) {
-  return new Intl.DateTimeFormat('en-IN', {
-    dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata',
-  }).format(new Date(value)) + ' IST'
-}
-
 async function downloadApprovedLetter(req, res, next) {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Leave request not found.' })
@@ -310,32 +304,8 @@ async function downloadApprovedLetter(req, res, next) {
     const reference = makeReference(request)
     res.setHeader('Content-Type', 'application/pdf')
     res.setHeader('Content-Disposition', `attachment; filename="${reference}.pdf"`)
-    const pdf = new PDFDocument({ size: 'A4', margin: 58, info: { Title: `Leave approval ${reference}`, Author: 'Campus Leave' } })
+    const pdf = createApprovalPdf(request, reference, requiredRoles, completedApprovals)
     pdf.pipe(res)
-    pdf.fontSize(20).fillColor('#245c42').text('CAMPUS LEAVE')
-    pdf.moveDown().fontSize(10).fillColor('#66736b').text(request.applicationType === 'outpass' ? 'STUDENT OUTPASS APPROVAL' : 'STUDENT LEAVE APPROVAL')
-    pdf.moveDown().fontSize(18).fillColor('#202b24').text(request.applicationType === 'outpass' ? 'Outpass approval letter' : 'Leave approval letter')
-    pdf.moveDown().fontSize(10).text(`Reference: ${reference}`)
-    pdf.moveDown().fontSize(11).fillColor('#202b24').text(`Student: ${request.studentName || 'Student'}`)
-    if (request.studentEmail) pdf.text(`College email: ${request.studentEmail}`)
-    pdf.moveDown().font('Helvetica-Bold').text('Leave type: ', { continued: true }).font('Helvetica').text(request.leaveType)
-    pdf.font('Helvetica-Bold').text('Start date: ', { continued: true }).font('Helvetica').text(new Date(request.startDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }))
-    pdf.font('Helvetica-Bold').text('End date: ', { continued: true }).font('Helvetica').text(new Date(request.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }))
-    if (request.applicationType === 'outpass') {
-      pdf.font('Helvetica-Bold').text('Departure / return: ', { continued: true }).font('Helvetica').text(`${request.departureTime} – ${request.returnTime}`)
-    }
-    if (request.contactNumber) pdf.font('Helvetica-Bold').text('Student phone number: ', { continued: true }).font('Helvetica').text(request.contactNumber)
-    pdf.font('Helvetica-Bold').text('Priority: ', { continued: true }).font('Helvetica').text(request.priority === 'urgent' ? 'Urgent' : 'Normal')
-    if (request.leaveAddress) pdf.font('Helvetica-Bold').text('Leave address: ', { continued: true }).font('Helvetica').text(request.leaveAddress)
-    pdf.font('Helvetica-Bold').text('Reason: ', { continued: true }).font('Helvetica').text(request.reason)
-    pdf.moveDown().font('Helvetica-Bold').fontSize(12).text('Approval record')
-    for (const role of requiredRoles) {
-      const approval = completedApprovals.get(role)
-      const assigned = request.approvers.find((item) => item.role === role)
-      pdf.moveDown(0.5).font('Helvetica-Bold').fontSize(10).text(`${role.replace('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())}: `, { continued: true })
-      pdf.font('Helvetica').text(`${approval?.approverName || assigned?.name || 'Approver'} — Approved ${formatTimestamp(approval.decidedAt)}`)
-    }
-    pdf.moveDown(1.5).fontSize(9).fillColor('#7b8780').text('Generated electronically by the Campus Leave system.')
     pdf.end()
   } catch (error) {
     next(error)
