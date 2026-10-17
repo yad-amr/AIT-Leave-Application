@@ -58,6 +58,14 @@ Build command: npm run setup && npm run build
 Start command: npm start
 ```
 
+### Deploying the frontend on Vercel
+
+Vercel hosts the Vite frontend and proxies `/api/*` requests to the Express backend. Deploy the backend separately as a long-running Node.js web service using the commands above. In Vercel, import this repository and set **Root Directory** to `client`, **Framework Preset** to `Vite`, **Build Command** to `npm run build`, and **Output Directory** to `dist`. Set the Vercel project's Node.js version to 22 or newer.
+
+In Vercel's project environment variables, add `API_ORIGIN` with the backend's HTTPS origin only, for example `https://leave-api.example.com` (no path or trailing slash). Add it for Production and any Preview environments you intend to use. Set the backend's `APP_ORIGIN` to the exact Vercel origin used by the frontend, and set its other production variables as described above. If you add a custom domain or use Vercel preview deployments, update `APP_ORIGIN` to match that exact origin; the backend rejects write requests from other origins.
+
+The Vercel API proxy keeps browser requests and the secure session cookie on the frontend's origin. It returns an explicit error if `API_ORIGIN` is missing or invalid, or if the backend cannot be reached.
+
 Set these environment variables in the hosting provider's private service settings:
 
 | Variable | Production value |
