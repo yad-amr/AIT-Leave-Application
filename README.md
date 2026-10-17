@@ -70,7 +70,7 @@ The Vercel API proxy keeps browser requests and the secure session cookie on the
 
 The `Deploy GitHub Pages` workflow builds and publishes the frontend from `main` at `https://yad-amr.github.io/AIT-Leave-Application/`, using the Render API origin configured in the workflow. The Pages build uses hash-based routes (for example, `/#/login/student`) so app routes can be refreshed on static hosting. In the GitHub repository, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. Subsequent pushes to `main` deploy the frontend automatically.
 
-For the Render backend, set `APP_ORIGIN=https://yad-amr.github.io` and `COOKIE_SAME_SITE=none`, then redeploy it. The API sends credentialed CORS responses only to the configured `APP_ORIGIN`. The Pages build uses `VITE_API_ORIGIN` to call the Render API directly; change the value in `.github/workflows/deploy-pages.yml` if the backend URL changes.
+For the Render backend, set `APP_ORIGIN=https://yad-amr.github.io`, `APP_ORIGINS=https://ait-leave-application.onrender.com`, and `COOKIE_SAME_SITE=none`, then redeploy it. `APP_ORIGIN` and `APP_ORIGINS` contain the exact HTTPS origins allowed to make credentialed API requests; `APP_ORIGINS` is an optional comma-separated list for additional frontends. This allows both GitHub Pages and the Render-hosted app to use the same API. The Pages build uses `VITE_API_ORIGIN` to call the Render API directly; change the value in `.github/workflows/deploy-pages.yml` if the backend URL changes.
 
 **Browser compatibility warning:** GitHub Pages (`github.io`) and Render (`onrender.com`) are different sites. The login session cookie must be sent as a third-party cookie; browsers or privacy settings that block third-party cookies can prevent sign-in from working. A custom domain shared by the frontend and API (for example, `leave.example.edu` and `api.example.edu`) is recommended for reliable cookie behavior. GitHub Pages cannot proxy API requests.
 
@@ -102,6 +102,7 @@ See [server/.env.example](server/.env.example). Configuration loads from `server
 | `DEMO_PASSWORD` | Optional password for local seeded demo accounts. |
 | `MONGODB_URI` | MongoDB connection string; defaults to `mongodb://localhost:27017/leave_management`. |
 | `APP_ORIGIN` | Allowed browser origin; default `http://localhost:5173`. |
+| `APP_ORIGINS` | Optional comma-separated list of additional exact frontend origins. Production entries must use HTTPS and must not include paths or trailing slashes. |
 | `COOKIE_SAME_SITE` | Session cookie SameSite setting; defaults to `strict`. Use `none` only for HTTPS cross-site frontend/API deployments. |
 | `PORT` | API port; default 3001. |
 | `NODE_ENV` | Set to `production` behind HTTPS to enable Secure cookies and disable demo account seeding. |

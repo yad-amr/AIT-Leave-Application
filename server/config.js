@@ -6,8 +6,16 @@ function config() {
   const secret = process.env.SESSION_SECRET
   if (!secret || secret.length < 32) throw new Error('Set SESSION_SECRET to at least 32 random characters.')
   const origin = process.env.APP_ORIGIN || 'http://localhost:5173'
+  const additionalOrigins = (process.env.APP_ORIGINS || '').split(',').map((value) => value.trim()).filter(Boolean)
   const cookieSameSite = process.env.COOKIE_SAME_SITE || 'strict'
   if (!['strict', 'lax', 'none'].includes(cookieSameSite)) throw new Error('Invalid COOKIE_SAME_SITE')
+  for (const allowedOrigin of additionalOrigins) {
+    let parsedOrigin
+    try { parsedOrigin = new URL(allowedOrigin) } catch { parsedOrigin = null }
+    if (parsedOrigin?.origin !== allowedOrigin || (production && parsedOrigin.protocol !== 'https:')) {
+      throw new Error('APP_ORIGINS must contain exact origins without paths; production origins must use HTTPS.')
+    }
+  }
   const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/leave_management'
   const hostedOnLaptop = process.env.HOSTED_ON_LAPTOP === 'true'
   if (production) {
@@ -48,6 +56,7 @@ function config() {
     idleMs: positive('SESSION_IDLE_SECONDS', 1800) * 1000,
     sessionMs: positive('SESSION_EXPIRY_SECONDS', 28800) * 1000,
     origin,
+    allowedOrigins: [origin, ...additionalOrigins],
     cookieSameSite,
     mongoUri,
     hostedOnLaptop,

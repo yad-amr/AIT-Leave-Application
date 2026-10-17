@@ -11,6 +11,7 @@ function createApp({ config, users, now = Date.now }) {
   const sessions = new Map()
   const idleMs = config.idleMs || 30 * 60000
   const app = express()
+  const allowedOrigins = new Set(config.allowedOrigins || [config.origin])
   if (config.hostedOnLaptop) app.set('trust proxy', 1)
   const cookie = { httpOnly: true, secure: config.production, sameSite: config.cookieSameSite || 'strict', path: '/' }
 
@@ -18,7 +19,7 @@ function createApp({ config, users, now = Date.now }) {
   app.use('/api', (req, res, next) => {
     const forwardedHost = req.headers['x-forwarded-host']
     const forwardedOrigin = forwardedHost ? `http://${forwardedHost}` : null
-    const allowedOrigin = req.headers.origin === config.origin || (config.devMode && req.headers.origin === forwardedOrigin)
+    const allowedOrigin = allowedOrigins.has(req.headers.origin) || (config.devMode && req.headers.origin === forwardedOrigin)
     if (req.headers.origin && !allowedOrigin) {
       return res.status(403).json({ error: 'Request rejected.' })
     }
