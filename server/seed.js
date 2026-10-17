@@ -17,6 +17,17 @@ async function seed() {
     { email: { $in: [`warden@${domain}`, `counsellor@${domain}`, `hod@${domain}`, `jointdirector@${domain}`] } },
     { $unset: { approvalRole: 1 } },
   )
+  await User.deleteMany({
+    email: {
+      $in: [
+        `nisha.rao@${domain}`,
+        `rahul.shah@${domain}`,
+        `sneha.patil@${domain}`,
+        `vikram.menon@${domain}`,
+        `vivek.desai@${domain}`,
+      ],
+    },
+  })
   const demos = [
     { email: `aarav.sharma_240101@${domain}`, role: 'student', name: 'Aarav Sharma', college_id: 'DEMO-240101' },
     { email: `ananya.iyer_240102@${domain}`, role: 'student', name: 'Ananya Iyer', college_id: 'DEMO-240102' },
@@ -29,26 +40,32 @@ async function seed() {
     { email: `dev.malhotra_240109@${domain}`, role: 'student', name: 'Dev Malhotra', college_id: 'DEMO-240109' },
     { email: `tara.desai_240110@${domain}`, role: 'student', name: 'Tara Desai', college_id: 'DEMO-240110' },
     { email: `faculty@${domain}`, role: 'faculty', name: 'Demo Faculty', college_id: 'DEMO-FACULTY' },
-    { email: `nisha.rao@${domain}`, role: 'faculty', approvalRole: 'warden', name: 'Nisha Rao', college_id: 'DEMO-WARDEN-1' },
-    { email: `rahul.shah@${domain}`, role: 'faculty', approvalRole: 'warden', name: 'Rahul Shah', college_id: 'DEMO-WARDEN-2' },
+    { email: `sandip.shivaji.mahadik_rectorboyshostel@${domain}`, role: 'faculty', name: 'Sandip Shivaji Mahadik', department: 'Boys Hostel', college_id: 'DEMO-RECTOR-BOYS-HOSTEL' },
+    { email: `beauty.das_wardengirlshostel@${domain}`, role: 'faculty', approvalRole: 'warden', name: 'Ms. Beauty Das', department: 'Girls Hostel', college_id: 'DEMO-WARDEN-GIRLS-HOSTEL' },
+    { email: `dhanjee.singh.yadav_supervisorboyshostel@${domain}`, role: 'faculty', name: 'Mr. Dhanjee Singh Yadav', department: 'Boys Hostel', college_id: 'DEMO-SUPERVISOR-BOYS-HOSTEL-1' },
+    { email: `r.s.talikoti_supervisorboyshostel@${domain}`, role: 'faculty', name: 'Mr. R S Talikoti', department: 'Boys Hostel', college_id: 'DEMO-SUPERVISOR-BOYS-HOSTEL-2' },
+    { email: `amol.tejrao.mogal_supervisorboyshostel@${domain}`, role: 'faculty', name: 'Mr. Amol Tejrao Mogal', department: 'Boys Hostel', college_id: 'DEMO-SUPERVISOR-BOYS-HOSTEL-3' },
+    { email: `umesh.kumar.singh_wardenboyshostel@${domain}`, role: 'faculty', approvalRole: 'warden', name: 'Mr. Umesh Kumar Singh', department: 'Boys Hostel', college_id: 'DEMO-WARDEN-BOYS-HOSTEL-1' },
+    { email: `kajal.khatri_wardenboyshostel@${domain}`, role: 'faculty', approvalRole: 'warden', name: 'Mr. Kajal Khatri', department: 'Boys Hostel', college_id: 'DEMO-WARDEN-BOYS-HOSTEL-2' },
+    { email: `mangesh.uttam.amberkar_wardenboyshostel@${domain}`, role: 'faculty', approvalRole: 'warden', name: 'Mr. Mangesh Uttam Amberkar', department: 'Boys Hostel', college_id: 'DEMO-WARDEN-BOYS-HOSTEL-3' },
+    { email: `vikas.d.ambre_wardenboyshostel@${domain}`, role: 'faculty', approvalRole: 'warden', name: 'Mr Vikas D Ambre', department: 'Boys Hostel', college_id: 'DEMO-WARDEN-BOYS-HOSTEL-4' },
     { email: `anjali.desai@${domain}`, role: 'faculty', approvalRole: 'counsellor', name: 'Anjali Desai', college_id: 'DEMO-COUNSELLOR-1' },
     { email: `arjun.kulkarni@${domain}`, role: 'faculty', approvalRole: 'counsellor', name: 'Arjun Kulkarni', college_id: 'DEMO-COUNSELLOR-2' },
-    { email: `sneha.patil@${domain}`, role: 'faculty', approvalRole: 'hod', name: 'Sneha Patil', college_id: 'DEMO-HOD-1' },
-    { email: `vikram.menon@${domain}`, role: 'faculty', approvalRole: 'hod', name: 'Vikram Menon', college_id: 'DEMO-HOD-2' },
-    { email: `vivek.desai@${domain}`, role: 'faculty', approvalRole: 'joint_director', name: 'Vivek Desai', college_id: 'DEMO-JOINT-DIRECTOR' },
+    { email: `sushma.patil_hodentc@${domain}`, role: 'faculty', approvalRole: 'hod', name: 'Dr Sushma Patil', department: 'E&TC', college_id: 'DEMO-HOD-ENTC' },
+    { email: `s.r.dhore_hodcomputerengg@${domain}`, role: 'faculty', approvalRole: 'hod', name: 'Prof.(Dr.) S R Dhore', department: 'Computer Engineering', college_id: 'DEMO-HOD-COMPUTER-ENGG' },
+    { email: `sangeeta.jadhav_hodit@${domain}`, role: 'faculty', approvalRole: 'hod', name: 'Dr. (Mrs) Sangeeta Jadhav', department: 'Information Technology', college_id: 'DEMO-HOD-IT' },
+    { email: `u.v.awasarmol_hodmechanicalengg@${domain}`, role: 'faculty', approvalRole: 'hod', name: 'Prof (Dr) UV Awasarmol', department: 'Mechanical Engineering', college_id: 'DEMO-HOD-MECHANICAL-ENGG' },
+    { email: `j.d.patil_hodare@${domain}`, role: 'faculty', approvalRole: 'hod', name: 'Dr J D Patil', department: 'ARE', college_id: 'DEMO-HOD-ARE' },
+    { email: `sudip.khasnavis_jointdirector@${domain}`, role: 'faculty', approvalRole: 'joint_director', name: 'Col Sudip Khasnavis (Retd)', department: 'College Administration', college_id: 'DEMO-JOINT-DIRECTOR' },
   ]
 
-  const departments = { warden: 'Hostel Administration', counsellor: 'Student Counselling', hod: 'Computer Engineering', joint_director: 'College Administration' }
+  const departments = { counsellor: 'Student Counselling' }
   for (const demo of demos) {
     demo.active = true
-    if (demo.approvalRole) demo.department = departments[demo.approvalRole]
+    if (demo.approvalRole && departments[demo.approvalRole]) demo.department = departments[demo.approvalRole]
   }
 
   for (const demo of demos) {
-    if (demo.approvalRole === 'joint_director') {
-      const existingDirector = await User.findOne({ approvalRole: 'joint_director' })
-      if (existingDirector && existingDirector.email !== demo.email) continue
-    }
     const user = await User.findOne({ email: demo.email }).select('+passwordHash')
     if (!user) {
       await User.create({ ...demo, passwordHash })

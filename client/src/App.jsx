@@ -24,9 +24,9 @@ function Login({ domain }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [touched, setTouched] = useState(false)
-  const template = role === 'student' ? `name_123456@${domain}` : `name@${domain}`
-  const emailError = role === 'student' ? `Use ${template} with a six-digit registration number.` : `Use ${template} for faculty sign-in.`
-  const localPattern = role === 'student' ? /^[a-z][a-z.-]*_\d{6}$/i : /^[a-z][a-z.-]*$/i
+  const template = role === 'student' ? `name_123456@${domain}` : `name@${domain} or name_designation@${domain}`
+  const emailError = role === 'student' ? `Use ${template} with a six-digit registration number.` : `Use a college faculty email in the format ${template}.`
+  const localPattern = role === 'student' ? /^[a-z][a-z.-]*_\d{6}$/i : /^[a-z][a-z.-]*(?:_[a-z][a-z0-9.-]*)?$/i
   const parts = email.trim().toLowerCase().split('@')
   const validEmail = parts.length === 2 && parts[1] === domain && localPattern.test(parts[0])
 

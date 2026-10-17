@@ -27,14 +27,15 @@ Open http://localhost:5173/login/student or http://localhost:5173/login/faculty.
 | Student 4 | `priya.nair_240104@aitpune.edu.in` | `CampusLeave123!` |
 | Student 5–10 | `kabir.patel_240105`, `meera.joshi_240106`, `ishaan.kulkarni_240107`, `sana.khan_240108`, `dev.malhotra_240109`, `tara.desai_240110` (append `@aitpune.edu.in`) | `CampusLeave123!` |
 | Faculty | `faculty@aitpune.edu.in` | `CampusLeave123!` |
-| Warden reviewers | `nisha.rao@aitpune.edu.in`, `rahul.shah@aitpune.edu.in` | `CampusLeave123!` |
+| Warden reviewers | `beauty.das_wardengirlshostel`, `umesh.kumar.singh_wardenboyshostel`, `kajal.khatri_wardenboyshostel`, `mangesh.uttam.amberkar_wardenboyshostel`, `vikas.d.ambre_wardenboyshostel` (append `@aitpune.edu.in`) | `CampusLeave123!` |
 | Counsellor reviewers | `anjali.desai@aitpune.edu.in`, `arjun.kulkarni@aitpune.edu.in` | `CampusLeave123!` |
-| HOD reviewers | `sneha.patil@aitpune.edu.in`, `vikram.menon@aitpune.edu.in` | `CampusLeave123!` |
-| Joint Director | `vivek.desai@aitpune.edu.in` | `CampusLeave123!` |
+| HOD reviewers | `sushma.patil_hodentc`, `s.r.dhore_hodcomputerengg`, `sangeeta.jadhav_hodit`, `u.v.awasarmol_hodmechanicalengg`, `j.d.patil_hodare` (append `@aitpune.edu.in`) | `CampusLeave123!` |
+| Joint Director | `sudip.khasnavis_jointdirector@aitpune.edu.in` | `CampusLeave123!` |
+| Other hostel faculty (not approvers) | `sandip.shivaji.mahadik_rectorboyshostel`, `dhanjee.singh.yadav_supervisorboyshostel`, `r.s.talikoti_supervisorboyshostel`, `amol.tejrao.mogal_supervisorboyshostel` (append `@aitpune.edu.in`) | `CampusLeave123!` |
 
 Change the local demo password with `DEMO_PASSWORD` before seeding. Never use demo credentials in production.
 
-In local dev, leaving `MONGODB_URI` blank starts a temporary MongoDB instance and seeds demo student and faculty accounts. It may download a MongoDB binary the first time and needs network access. Data in this temporary database disappears on restart. To persist data, set `MONGODB_URI` to your MongoDB connection string. The seeder creates missing demo accounts and preserves their password hashes on later runs, so a user's password change is not reset at restart.
+The app connects to persistent MongoDB at `mongodb://localhost:27017/leave_management` by default. Ensure MongoDB is running before starting the app. To use another persistent MongoDB server, set `MONGODB_URI` in `server/.env` to its connection string. The app no longer silently falls back to a temporary database if MongoDB is unavailable. The seeder creates missing demo accounts and preserves their password hashes on later runs, so a user's password change is not reset at restart. Devices on the same network access the same app and database through the host machine's LAN address.
 
 ## Configuration
 
@@ -42,15 +43,15 @@ See [server/.env.example](server/.env.example). Configuration loads from `server
 
 | Variable | Purpose |
 | --- | --- |
-| `COLLEGE_DOMAIN` | Allowed email domain; default `aitpune.edu.in`. Students use `name_123456@domain`; faculty use `name@domain`. |
+| `COLLEGE_DOMAIN` | Allowed email domain; default `aitpune.edu.in`. Students use `name_123456@domain`; faculty use `name@domain` or `name_designation@domain`. |
 | `SESSION_SECRET` | Random secret of at least 32 characters used to sign sessions. |
 | `SESSION_EXPIRY_SECONDS` | Session lifetime; default 28800 seconds. |
-| `DEV_MODE` | Enables demo seeding and local temporary MongoDB when `true` outside production. |
+| `DEV_MODE` | Enables local demo account seeding when `true` outside production. |
 | `DEMO_PASSWORD` | Optional password for local seeded demo accounts. |
-| `MONGODB_URI` | MongoDB connection string; required outside local dev mode. |
+| `MONGODB_URI` | MongoDB connection string; defaults to `mongodb://localhost:27017/leave_management`. |
 | `APP_ORIGIN` | Allowed browser origin; default `http://localhost:5173`. |
 | `PORT` | API port; default 3001. |
-| `NODE_ENV` | Set to `production` behind HTTPS to enable Secure cookies and disable development fallbacks. |
+| `NODE_ENV` | Set to `production` behind HTTPS to enable Secure cookies and disable demo account seeding. |
 
 Accounts must already exist in MongoDB and have a `passwordHash`. The login API does not create accounts. Existing database accounts without a password hash need to have one provisioned before they can sign in. Raw passwords are never stored. Signed-in students and faculty can use **Change password** on their dashboard; after a successful change they must sign in again using the new password.
 
