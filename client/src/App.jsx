@@ -1,6 +1,6 @@
 import Logo from './Logo.jsx'
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import StudentDashboard from './features/student/StudentDashboard.jsx'
 import FacultyDashboard from './features/faculty/FacultyDashboard.jsx'
 import { api } from './api.js'
@@ -119,12 +119,14 @@ function Dashboard() {
 function AuthenticatedApp() {
   const [domain, setDomain] = useState('')
   const [error, setError] = useState('')
+  const githubPages = import.meta.env.BASE_URL !== '/'
   useEffect(() => {
     api('/auth/config').then((data) => setDomain(data.domain)).catch(() => setError('Unable to connect. Check the server and reload this page.'))
   }, [])
   if (error) return <p role="alert">{error}</p>
   if (!domain) return <p role="status">Connecting to Smart Leave…</p>
-  return <BrowserRouter basename={import.meta.env.BASE_URL}><Routes><Route path="/login/:role" element={<RoleLogin domain={domain} />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="/portal/:role" element={<LegacyLoginRedirect />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes></BrowserRouter>
+  const routes = <Routes><Route path="/login/:role" element={<RoleLogin domain={domain} />} /><Route path="/:role/dashboard" element={<Dashboard />} /><Route path="/portal/:role" element={<LegacyLoginRedirect />} /><Route path="*" element={<Navigate to="/login/student" replace />} /></Routes>
+  return githubPages ? <HashRouter>{routes}</HashRouter> : <BrowserRouter>{routes}</BrowserRouter>
 }
 
 function App() {

@@ -68,7 +68,7 @@ The Vercel API proxy keeps browser requests and the secure session cookie on the
 
 ### Deploying the frontend on GitHub Pages
 
-The `Deploy GitHub Pages` workflow builds and publishes the frontend from `main` at `https://yad-amr.github.io/AIT-Leave-Application/`, using the Render API origin configured in the workflow. In the GitHub repository, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. Subsequent pushes to `main` deploy the frontend automatically.
+The `Deploy GitHub Pages` workflow builds and publishes the frontend from `main` at `https://yad-amr.github.io/AIT-Leave-Application/`, using the Render API origin configured in the workflow. The Pages build uses hash-based routes (for example, `/#/login/student`) so app routes can be refreshed on static hosting. In the GitHub repository, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. Subsequent pushes to `main` deploy the frontend automatically.
 
 For the Render backend, set `APP_ORIGIN=https://yad-amr.github.io` and `COOKIE_SAME_SITE=none`, then redeploy it. The API sends credentialed CORS responses only to the configured `APP_ORIGIN`. The Pages build uses `VITE_API_ORIGIN` to call the Render API directly; change the value in `.github/workflows/deploy-pages.yml` if the backend URL changes.
 
