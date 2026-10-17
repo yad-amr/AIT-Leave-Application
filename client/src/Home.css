@@ -1,0 +1,39 @@
+/* The landing page shares the sign-in palette. */
+.home {
+  --accent: #3366ff;
+  --text: #202737;
+  --muted: #626b7d;
+  --line: #dce0e8;
+  color-scheme: light;
+  color: var(--text);
+  background: #eceef1;
+}
+.home .home-nav { max-width: 1240px; height: 92px; }
+.home .brand { color: #3366ff; }
+.home .brand span { color: #202737; border-color: #b7c2e0; }
+.home .home-nav nav a { color: #626b7d; font-weight: 600; }
+.home .home-nav nav a:hover { color: #3366ff; }
+.home .home-hero {
+  max-width: none;
+  padding: 112px max(32px, calc((100% - 1176px) / 2)) 104px;
+  background: linear-gradient(145deg, #f0e9fc 0%, #e6ebfb 55%, #d6e2ff 100%);
+  border-block: 1px solid #dce0e8;
+}
+.home .eyebrow { color: #626b82; }
+.home .home-hero h1 { color: #202737; font-weight: 750; }
+.home .home-hero > p:not(.eyebrow) { color: #626b7d; }
+.home .button-link { background: #3366ff; border-radius: 8px; }
+.home .button-link:hover { background: #254ed0; }
+.home .secondary-link { color: #3366ff; font-weight: 650; }
+.home a:focus-visible { outline: 2px solid #3366ff; outline-offset: 5px; }
+.home .site-footer { background: #f9fafc; color: #202737; border-top: 1px solid #dce0e8; }
+.home .footer-main h2, .home .footer-main h3, .home .movie-link strong { color: #202737; }
+.home .footer-main a, .home .footer-main section > p, .home .copyright { color: #626b7d; }
+.home .footer-main a:hover { color: #3366ff; }
+.home .copyright { border-color: #dce0e8; }
+@media (max-width: 600px) {
+  .home .home-nav { height: auto; min-height: 80px; padding-block: 18px; gap: 20px; flex-wrap: wrap; }
+  .home .home-hero { padding: 72px 24px; }
+  .home .home-hero h1 { font-size: 46px; letter-spacing: -2px; }
+  .home .hero-actions { gap: 20px; flex-wrap: wrap; }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom'
 import './DemoPortal.css'
+import './Home.css'
 
 const storageKey = 'smart-leave-demo-requests'
 const stages = [['warden', 'Warden'], ['counsellor', 'Counsellor'], ['hod', 'HOD'], ['joint_director', 'Joint Director']]
@@ -24,8 +25,8 @@ const initialRequests = () => [{
 
 function Home() {
   return <div className="home">
-    <header className="home-nav"><Link className="brand" to="/">SL <span>SMART LEAVE</span></Link><nav aria-label="Portal navigation"><a href="/login/student">Student sign in</a><a href="/login/faculty">Faculty sign in</a><Link to="/portal/student">Student demo</Link></nav></header>
-    <main className="home-hero"><p className="eyebrow">ARMY INSTITUTE OF TECHNOLOGY · PUNE</p><h1>Leave, without the paperwork.</h1><p>One clear process for student leave requests, approvals and updates.</p><div className="hero-actions"><a className="button-link" href="/login/student">Student sign in <span aria-hidden="true">→</span></a><a className="secondary-link" href="/login/faculty">Faculty sign in</a></div><p className="hero-caption">One request. Four approvals. Every update in one place. <Link to="/portal/student">Explore the local demo</Link></p></main>
+    <header className="home-nav"><Link className="brand" to="/">SL <span>SMART LEAVE</span></Link><nav aria-label="Portal navigation"><a href="/login/student">Student sign in</a><a href="/login/faculty">Faculty sign in</a></nav></header>
+    <main className="home-hero"><p className="eyebrow">ARMY INSTITUTE OF TECHNOLOGY · PUNE</p><h1>Leave, without the paperwork.</h1><p>One clear process for student leave requests, approvals and updates.</p><div className="hero-actions"><a className="button-link" href="/login/student">Student sign in <span aria-hidden="true">→</span></a><a className="secondary-link" href="/login/faculty">Faculty sign in</a></div><p className="hero-caption">One request. Four approvals. Every update in one place.</p></main>
     <footer className="site-footer">
       <div className="footer-main">
         <section><h2>Contact Us</h2><a href="https://www.aitpune.com/Contact-Us.aspx">For an Enquiry</a><p>Dighi Hills, Pune-411015<br /><a href="tel:8956018951">8956018951/ 52/ 53/ 54</a><br /><a href="mailto:ait@aitpune.edu.in">ait[at]aitpune[dot]edu[dot]in</a></p><h3>Follow Us</h3><div className="social-links"><a href="https://www.aitpune.com/">AIT Pune</a><a href="https://www.aitpune.com/clubs.aspx">Campus clubs</a></div></section>
@@ -115,7 +116,7 @@ function Certificate({ request, onBack }) {
 }
 
 function PortalHeader({ section, role, onRoleChange }) {
-  return <header className="portal-header"><Link className="brand" to="/">SL <span>SMART LEAVE</span></Link><nav aria-label="Portal navigation"><NavLink to="/portal/student">Student demo</NavLink><NavLink to="/portal/faculty">Faculty demo</NavLink><a href={`/login/${section}`}>Open authenticated portal</a>{section === 'faculty' && <label className="stage-selector">Review as <select value={role} onChange={event => onRoleChange(event.target.value)}>{stages.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label>}<Link className="home-link" to="/">Home</Link></nav></header>
+  return <header className="portal-header"><Link className="brand" to="/">SL <span>SMART LEAVE</span></Link><nav aria-label="Portal navigation"><a href="/login/student">Student sign in</a><NavLink to="/portal/faculty">Faculty demo</NavLink><a href={`/login/${section}`}>Open authenticated portal</a>{section === 'faculty' && <label className="stage-selector">Review as <select value={role} onChange={event => onRoleChange(event.target.value)}>{stages.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label>}<Link className="home-link" to="/">Home</Link></nav></header>
 }
 
 function FacultyPortal({ requests, setRequests }) {
@@ -152,36 +153,7 @@ function FacultyPortal({ requests, setRequests }) {
   </main>
 }
 
-const emptyRequest = { leaveType: 'Hostel leave', startDate: '', endDate: '', destination: '', reason: '' }
-function StudentPortal({ requests, setRequests }) {
-  const [form, setForm] = useState(emptyRequest)
-  const [showForm, setShowForm] = useState(false)
-  const [certificate, setCertificate] = useState(null)
-  function submit(event) {
-    event.preventDefault()
-    const token = `AIT-${demoId()}`
-    const request = {
-      ...form, _id: token, token, studentEmail: 'student@demo.local', studentName: 'Demo Student',
-      startDate: new Date(`${form.startDate}T12:00:00`).toISOString(),
-      endDate: new Date(`${form.endDate}T12:00:00`).toISOString(),
-      status: 'pending', currentStage: stages[0][0],
-      timeline: [createDemoEvent('submitted', null, 'Demo request submitted')],
-    }
-    setRequests([request, ...requests])
-    setForm(emptyRequest); setShowForm(false)
-  }
-  if (certificate) return <Certificate request={certificate} onBack={() => setCertificate(null)} />
-  return <main className="portal">
-    <PortalHeader section="student" />
-    <section className="portal-content"><DemoNotice /><div className="page-heading"><div><p className="eyebrow">STUDENT PORTAL</p><h1>Welcome, Demo Student</h1><p className="muted">Create demo requests and follow each approval step with its token.</p></div><button onClick={() => setShowForm(value => !value)}>{showForm ? 'Close form' : 'New leave request +'}</button></div>
-      {showForm && <form className="leave-form" onSubmit={submit}><h2>Request leave</h2><div className="form-grid"><div><label htmlFor="leaveType">Request type</label><select id="leaveType" value={form.leaveType} onChange={event => setForm({ ...form, leaveType: event.target.value })}><option>Hostel leave</option><option>Academic outpass</option></select></div><div><label htmlFor="destination">Destination</label><input id="destination" required maxLength={160} value={form.destination} onChange={event => setForm({ ...form, destination: event.target.value })} /></div><div><label htmlFor="startDate">From</label><input id="startDate" type="date" required value={form.startDate} onChange={event => setForm({ ...form, startDate: event.target.value })} /></div><div><label htmlFor="endDate">To</label><input id="endDate" type="date" required min={form.startDate} value={form.endDate} onChange={event => setForm({ ...form, endDate: event.target.value })} /></div></div><label htmlFor="reason">Reason for leave</label><textarea id="reason" required maxLength={2000} value={form.reason} onChange={event => setForm({ ...form, reason: event.target.value })} /><button>Submit demo request</button></form>}
-      <div className="list-heading"><h2>Your requests <span className="count">{requests.length}</span></h2></div>
-      {requests.length === 0 ? <div className="empty-state"><strong>No leave tokens yet.</strong><p>Create a demo request to explore all four approval stages.</p></div> : <div className="request-list">{requests.map(request => <RequestCard key={request._id} request={request} onCertificate={setCertificate} />)}</div>}
-    </section>
-  </main>
-}
-
-function Portal({ section }) {
+function Portal() {
   const [requests, setRequests] = useState(() => {
     try {
       const saved = localStorage.getItem(storageKey)
@@ -195,9 +167,7 @@ function Portal({ section }) {
     try { localStorage.setItem(storageKey, JSON.stringify(requests)) }
     catch (error) { console.error('Unable to save local demo requests.', error) }
   }, [requests])
-  return section === 'faculty'
-    ? <FacultyPortal requests={requests} setRequests={setRequests} />
-    : <StudentPortal requests={requests} setRequests={setRequests} />
+  return <FacultyPortal requests={requests} setRequests={setRequests} />
 }
 
 function App() {
@@ -209,15 +179,21 @@ function App() {
   </Routes></BrowserRouter>
 }
 
+function StudentSignInRedirect() {
+  useEffect(() => { window.location.replace('/login/student') }, [])
+  return <p role="status">Opening student sign in…</p>
+}
+
 function PortalRoute() {
   const { section } = useParams()
-  if (!['student', 'faculty'].includes(section)) return <Navigate to="/" replace />
+  if (section === 'student') return <StudentSignInRedirect />
+  if (section !== 'faculty') return <Navigate to="/" replace />
   return <Portal key={section} section={section} />
 }
 
 function LegacyPortalRoute() {
   const { role } = useParams()
-  return <Navigate to={role === 'faculty' ? '/portal/faculty' : '/portal/student'} replace />
+  return <Navigate to={role === 'faculty' ? '/portal/faculty' : '/login/student'} replace />
 }
 
 export default App

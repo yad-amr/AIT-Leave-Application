@@ -4,6 +4,7 @@ import StudentDashboard from './features/student/StudentDashboard.jsx'
 import FacultyDashboard from './features/faculty/FacultyDashboard.jsx'
 import DemoPortal from './DemoPortal.jsx'
 import './App.css'
+import './Typography.css'
 
 async function api(path, body) {
   const response = await fetch(`/api${path}`, {

@@ -41,6 +41,7 @@ function serializeRequest(request) {
     leaveType: request.leaveType,
     applicationType: request.applicationType || 'leave',
     destination: request.destination || '',
+    leaveAddress: request.leaveAddress || '',
     contactNumber: request.contactNumber || '',
     startDate: request.startDate,
     endDate: request.endDate,
@@ -98,7 +99,7 @@ function validProof(file) {
 
 async function createLeaveRequest(req, res, next) {
   try {
-    const { applicationType = 'leave', leaveType, startDate, endDate, reason, departureTime, returnTime, destination, contactNumber, priority = 'normal' } = req.body
+    const { applicationType = 'leave', leaveType, startDate, endDate, reason, leaveAddress, departureTime, returnTime, destination, contactNumber, priority = 'normal' } = req.body
     let { approverIds = {} } = req.body
     if (typeof approverIds === 'string') {
       try { approverIds = JSON.parse(approverIds) } catch { return res.status(400).json({ message: 'Choose your approvers again.' }) }
@@ -112,6 +113,7 @@ async function createLeaveRequest(req, res, next) {
     if (applicationType === 'outpass' && (from.toDateString() !== to.toDateString() || !/^([01]\d|2[0-3]):[0-5]\d$/.test(departureTime || '') || !/^([01]\d|2[0-3]):[0-5]\d$/.test(returnTime || '') || departureTime >= returnTime || typeof destination !== 'string' || !destination.trim() || destination.trim().length > 200 || typeof contactNumber !== 'string' || !/^\+?[\d ()-]{7,20}$/.test(contactNumber.trim()))) {
       return res.status(400).json({ message: 'Enter a same-day outpass with valid departure and return times, a destination, and a contact number.' })
     }
+    if (applicationType === 'leave' && (typeof leaveAddress !== 'string' || !leaveAddress.trim() || leaveAddress.trim().length > 1000)) return res.status(400).json({ message: 'Enter a leave address of up to 1000 characters.' })
     if (!['normal', 'urgent'].includes(priority)) return res.status(400).json({ message: 'Choose normal or urgent priority.' })
     if (!startDate || Number.isNaN(from.getTime()) || !endDate || Number.isNaN(to.getTime())) return res.status(400).json({ message: 'Enter valid start and end dates.' })
     if (to < from) return res.status(400).json({ message: 'The end date must be on or after the start date.' })
@@ -148,6 +150,7 @@ async function createLeaveRequest(req, res, next) {
       startDate: from,
       endDate: to,
       reason: reason.trim(),
+      leaveAddress: applicationType === 'leave' ? leaveAddress.trim() : '',
       departureTime: applicationType === 'outpass' ? departureTime : undefined,
       returnTime: applicationType === 'outpass' ? returnTime : undefined,
       destination: applicationType === 'outpass' ? destination.trim() : '',
@@ -351,6 +354,7 @@ async function downloadApprovedLetter(req, res, next) {
       pdf.font('Helvetica-Bold').text('Contact: ', { continued: true }).font('Helvetica').text(request.contactNumber)
     }
     pdf.font('Helvetica-Bold').text('Priority: ', { continued: true }).font('Helvetica').text(request.priority === 'urgent' ? 'Urgent' : 'Normal')
+    if (request.leaveAddress) pdf.font('Helvetica-Bold').text('Leave address: ', { continued: true }).font('Helvetica').text(request.leaveAddress)
     pdf.font('Helvetica-Bold').text('Reason: ', { continued: true }).font('Helvetica').text(request.reason)
     pdf.moveDown().font('Helvetica-Bold').fontSize(12).text('Approval record')
     for (const role of requiredRoles) {

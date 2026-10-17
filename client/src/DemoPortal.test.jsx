@@ -7,30 +7,14 @@ import DemoPortal from './DemoPortal'
 beforeEach(() => localStorage.clear())
 afterEach(() => { cleanup(); window.history.replaceState({}, '', '/') })
 
-test('home page opens the student and faculty portals without login', async () => {
+test('home page links to student and faculty sign in', async () => {
   render(<DemoPortal />)
   expect(screen.getByRole('heading', { name: 'Leave, without the paperwork.' })).toBeTruthy()
-  expect(screen.getByRole('link', { name: 'Student demo' }).getAttribute('href')).toBe('/portal/student')
+  expect(screen.queryByRole('link', { name: 'Student demo' })).toBeNull()
+  expect(screen.queryByText('Explore the local demo')).toBeNull()
   expect(screen.getByRole('link', { name: 'For an Enquiry' }).getAttribute('href')).toBe('https://www.aitpune.com/Contact-Us.aspx')
   expect(screen.getByText('Site Updated On :01 Mar 2026')).toBeTruthy()
   expect(screen.getAllByRole('link', { name: 'Student sign in' })).toHaveLength(2)
-})
-
-test('student can submit a local demo token and find it in the faculty portal', async () => {
-  window.history.replaceState({}, '', '/portal/student')
-  render(<DemoPortal />)
-  const user = userEvent.setup()
-  await user.click(screen.getByRole('button', { name: 'New leave request +' }))
-  await user.type(screen.getByLabelText('Destination'), 'Pune')
-  await user.type(screen.getByLabelText('From'), '2026-11-10')
-  await user.type(screen.getByLabelText('To'), '2026-11-11')
-  await user.type(screen.getByLabelText('Reason for leave'), 'Family visit')
-  await user.click(screen.getByRole('button', { name: 'Submit demo request' }))
-  expect((await screen.findAllByText(/AIT-DEMO-/)).length).toBeGreaterThan(0)
-  expect(screen.getByText('Demo portal')).toBeTruthy()
-  await user.click(screen.getByRole('link', { name: 'Faculty demo' }))
-  expect((await screen.findAllByText(/AIT-DEMO-/)).length).toBeGreaterThan(0)
-  expect(screen.getAllByRole('button', { name: 'Approve' }).length).toBeGreaterThan(0)
 })
 
 test('faculty can switch approval stage and see response logs', async () => {

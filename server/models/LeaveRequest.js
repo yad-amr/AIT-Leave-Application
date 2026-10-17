@@ -38,6 +38,7 @@ const leaveRequestSchema = new mongoose.Schema({
   reason: { type: String, required: true, trim: true, minlength: 8, maxlength: 2000 },
   departureTime: { type: String, match: /^([01]\d|2[0-3]):[0-5]\d$/ },
   returnTime: { type: String, match: /^([01]\d|2[0-3]):[0-5]\d$/ },
+  leaveAddress: { type: String, trim: true, maxlength: 1000, default: '' },
   destination: { type: String, trim: true, maxlength: 200, default: '' },
   contactNumber: { type: String, trim: true, maxlength: 20, default: '' },
   priority: { type: String, enum: ['normal', 'urgent'], default: 'normal', required: true },
