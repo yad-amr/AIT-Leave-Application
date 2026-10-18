@@ -17,7 +17,7 @@ Set `SESSION_SECRET` in `server/.env` to a random value with at least 32 charact
 npm run dev
 ```
 
-Open http://localhost:5173/login/student or http://localhost:5173/login/faculty. To access the development app from another device on the same network, use the host machine's LAN address, for example `http://192.168.1.20:5173/login/student`. Allow Node.js through the host firewall on private networks if prompted. With the default domain `aitpune.edu.in`, local seed accounts are:
+Open http://localhost:xxxx/login/student or http://localhost:xxxx/login/faculty. To access the development app from another device on the same network, use the host machine's LAN address. Allow Node.js through the host firewall on private networks if prompted. With the default domain `aitpune.edu.in`, local seed accounts are:
 
 | Role | Email | Password |
 | --- | --- | --- |
