@@ -12,14 +12,11 @@ function createApp({ config, users, now = Date.now }) {
   const idleMs = config.idleMs || 30 * 60000
   const app = express()
   const allowedOrigins = new Set(config.allowedOrigins || [config.origin])
-  if (config.hostedOnLaptop) app.set('trust proxy', 1)
-  const cookie = { httpOnly: true, secure: config.production, sameSite: config.cookieSameSite || 'strict', path: '/' }
+  const cookie = { httpOnly: true, secure: config.production && config.origin.startsWith('https:'), sameSite: 'strict', path: '/' }
 
   app.use(helmet(), express.json({ limit: '4kb' }), cookieParser())
   app.use('/api', (req, res, next) => {
-    const forwardedHost = req.headers['x-forwarded-host']
-    const forwardedOrigin = forwardedHost ? `http://${forwardedHost}` : null
-    const allowedOrigin = allowedOrigins.has(req.headers.origin) || (config.devMode && req.headers.origin === forwardedOrigin)
+    const allowedOrigin = allowedOrigins.has(req.headers.origin)
     if (req.headers.origin && !allowedOrigin) {
       return res.status(403).json({ error: 'Request rejected.' })
     }
@@ -80,7 +77,7 @@ function createApp({ config, users, now = Date.now }) {
       if (typeof query.select === 'function') query = query.select('+passwordHash')
       const user = await query
       const validPassword = user?.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false
-      if (!user || !validPassword || (config.hostedOnLaptop && user.college_id?.startsWith('DEMO-'))) {
+      if (!user || !validPassword) {
         return res.status(401).json({ error: 'Email or password is incorrect.' })
       }
 

@@ -1,7 +1,5 @@
-const apiOrigin = (import.meta.env.VITE_API_ORIGIN || '').replace(/\/+$/, '')
-
 export function apiUrl(path) {
-  return `${apiOrigin}/api${path}`
+  return `/api${path}`
 }
 
 export async function api(path, body) {

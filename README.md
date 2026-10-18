@@ -1,134 +1,110 @@
 # Smart Leave Management System
 
-Student and faculty sign-in, leave applications, and outpasses built with React, Vite, Express, and MongoDB/Mongoose. Leave applications require four sequential approvals; an outpass requires the selected Warden only. Requests and approval history are stored in MongoDB and remain available across server restarts. Students can mark an application normal or urgent.
+A local leave-management app for students and faculty, built with React, Vite, Express, and MongoDB/Mongoose. Students can submit leave applications or outpasses and track their status. Leave applications pass through four sequential approvals; outpasses require approval from the selected Warden. Students can mark leave applications as normal or urgent.
 
-## Local setup
+Requests and approval history are stored in MongoDB and remain available after the app restarts.
 
-Requires Node.js 22.12+ and npm. From the repository root:
+## Run on this laptop
 
-```sh
+### Requirements
+
+- Node.js 22.12 or newer
+- npm
+- MongoDB installed and running on this laptop
+
+### Install and configure
+
+From the repository root, install dependencies and create the local environment file:
+
+```powershell
 npm run setup
 Copy-Item server/.env.example server/.env
 ```
 
-Set `SESSION_SECRET` in `server/.env` to a random value with at least 32 characters. `DEV_MODE=true` enables the local demo setup. Start both services with:
+Edit `server/.env` and replace `SESSION_SECRET` with a random value of at least 32 characters. The default database is `mongodb://localhost:27017/leave_management`; `DEV_MODE=true` enables local demo account seeding.
 
-```sh
+Start the API and frontend together:
+
+```powershell
 npm run dev
 ```
 
-Open http://localhost:5173/login/student or http://localhost:5173/login/faculty. To access the development app from another device on the same network, use the host machine's LAN address, for example `http://192.168.1.20:5173/login/student`. Allow Node.js through the host firewall on private networks if prompted. With the default domain `aitpune.edu.in`, local seed accounts are:
+Open the app on this laptop:
 
-| Role | Email | Password |
-| --- | --- | --- |
-| Student 1 | `aarav.sharma_240101@aitpune.edu.in` | `CampusLeave123!` |
-| Student 2 | `ananya.iyer_240102@aitpune.edu.in` | `CampusLeave123!` |
-| Student 3 | `rohan.mehta_240103@aitpune.edu.in` | `CampusLeave123!` |
-| Student 4 | `priya.nair_240104@aitpune.edu.in` | `CampusLeave123!` |
-| Student 5–10 | `kabir.patel_240105`, `meera.joshi_240106`, `ishaan.kulkarni_240107`, `sana.khan_240108`, `dev.malhotra_240109`, `tara.desai_240110` (append `@aitpune.edu.in`) | `CampusLeave123!` |
-| Faculty | `faculty@aitpune.edu.in` | `CampusLeave123!` |
-| Warden reviewers | `beauty.das_wardengirlshostel@aitpune.edu.in`, `umesh.kumar.singh_wardenboyshostel@aitpune.edu.in`, `kajal.khatri_wardenboyshostel@aitpune.edu.in`, `mangesh.uttam.amberkar_wardenboyshostel@aitpune.edu.in`, `vikas.d.ambre_wardenboyshostel@aitpune.edu.in` | `CampusLeave123!` |
-| Counsellor reviewers | `anjali.desai@aitpune.edu.in`, `arjun.kulkarni@aitpune.edu.in` | `CampusLeave123!` |
-| HOD reviewers | `sushma.patil_hodentc@aitpune.edu.in`, `s.r.dhore_hodcomputerengg@aitpune.edu.in`, `sangeeta.jadhav_hodit@aitpune.edu.in`, `u.v.awasarmol_hodmechanicalengg@aitpune.edu.in`, `j.d.patil_hodare@aitpune.edu.in` | `CampusLeave123!` |
-| Joint Director | `sudip.khasnavis_jointdirector@aitpune.edu.in` | `CampusLeave123!` |
-| Other hostel faculty (not approvers) | `sandip.shivaji.mahadik_rectorboyshostel`, `dhanjee.singh.yadav_supervisorboyshostel`, `r.s.talikoti_supervisorboyshostel`, `amol.tejrao.mogal_supervisorboyshostel` (append `@aitpune.edu.in`) | `CampusLeave123!` |
+- Student sign-in: <http://localhost:5173/login/student>
+- Faculty sign-in: <http://localhost:5173/login/faculty>
 
-Change the local demo password with `DEMO_PASSWORD` before seeding. Never use demo credentials in production.
+Leave the terminal and MongoDB running while using the app. If MongoDB is unavailable, the API reports a startup error instead of switching to a temporary database.
 
-The app connects to persistent MongoDB at `mongodb://localhost:27017/leave_management` by default. Ensure MongoDB is running before starting the app. To use another persistent MongoDB server, set `MONGODB_URI` in `server/.env` to its connection string. The app no longer silently falls back to a temporary database if MongoDB is unavailable. The seeder creates missing demo accounts and preserves their password hashes on later runs, so a user's password change is not reset at restart. Devices on the same network access the same app and database through the host machine's LAN address.
+The frontend and API bind to the laptop's loopback interface only. The app is not available to other devices on the network or the public internet. It is configured for local use: remote MongoDB connections and non-local frontend origins are rejected. There are no Vercel, Render, GitHub Pages, or public tunnel deployment configurations in this project.
 
-### Temporary public access from your Windows laptop
+## Local demo accounts
 
-For a short trial without moving MongoDB to the cloud, keep MongoDB on your laptop and expose only the app through a temporary Cloudflare Tunnel. From the repository root, run:
+The seeded accounts use the default college domain `aitpune.edu.in` and password `CampusLeave123!`.
 
-```powershell
-.\scripts\start-laptop-host.ps1
-```
-
-The script downloads Cloudflare's Windows tunnel client if needed, verifies its Windows signature, creates a temporary HTTPS URL, and starts the production-built app against the laptop's local MongoDB. Demo seeding is disabled, and accounts created by the local demo seeder are blocked from signing in through the public tunnel. Share the temporary URL only with intended users. The URL changes when restarted; your laptop, MongoDB, internet connection, and the script window must remain available. Do not expose port 27017 or enable MongoDB network binding to the internet. This temporary tunnel has no production availability guarantee.
-
-## Public deployment
-
-To let students and faculty use the same live requests from any network, deploy one copy of the API and connect it to one shared, managed MongoDB database (for example, MongoDB Atlas). Do not use `localhost` for the production database: `localhost` on a hosted service or another computer points to that machine, not to your computer. The frontend can be served by the backend, Vercel with a same-origin API proxy, or GitHub Pages with a cross-origin API connection.
-
-For a Node.js web service (for example, Render or Railway), configure the repository root as the service root and use:
-
-```text
-Build command: npm run setup && npm run build
-Start command: npm start
-```
-
-### Deploying the frontend on Vercel
-
-Vercel hosts the Vite frontend and proxies `/api/*` requests to the Express backend. Deploy the backend separately as a long-running Node.js web service using the commands above. In Vercel, import this repository and set **Root Directory** to `client`, **Framework Preset** to `Vite`, **Build Command** to `npm run build`, and **Output Directory** to `dist`. Set the Vercel project's Node.js version to 22 or newer.
-
-In Vercel's project environment variables, add `API_ORIGIN` with the backend's HTTPS origin only, for example `https://leave-api.example.com` (no path or trailing slash). Add it for Production and any Preview environments you intend to use. Set the backend's `APP_ORIGIN` to the exact Vercel origin used by the frontend, and set its other production variables as described above. If you add a custom domain or use Vercel preview deployments, update `APP_ORIGIN` to match that exact origin; the backend rejects write requests from other origins.
-
-The Vercel API proxy keeps browser requests and the secure session cookie on the frontend's origin. It returns an explicit error if `API_ORIGIN` is missing or invalid, or if the backend cannot be reached.
-
-### Deploying the frontend on GitHub Pages
-
-The `Deploy GitHub Pages` workflow builds and publishes the frontend from `main` at `https://yad-amr.github.io/AIT-Leave-Application/`, using the Render API origin configured in the workflow. The Pages build uses hash-based routes (for example, `/#/login/student`) so app routes can be refreshed on static hosting. In the GitHub repository, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. Subsequent pushes to `main` deploy the frontend automatically.
-
-For the Render backend, set `APP_ORIGIN=https://yad-amr.github.io`, `APP_ORIGINS=https://ait-leave-application.onrender.com`, and `COOKIE_SAME_SITE=none`, then redeploy it. `APP_ORIGIN` and `APP_ORIGINS` contain the exact HTTPS origins allowed to make credentialed API requests; `APP_ORIGINS` is an optional comma-separated list for additional frontends. This allows both GitHub Pages and the Render-hosted app to use the same API. The Pages build uses `VITE_API_ORIGIN` to call the Render API directly; change the value in `.github/workflows/deploy-pages.yml` if the backend URL changes.
-
-**Browser compatibility warning:** GitHub Pages (`github.io`) and Render (`onrender.com`) are different sites. The login session cookie must be sent as a third-party cookie; browsers or privacy settings that block third-party cookies can prevent sign-in from working. A custom domain shared by the frontend and API (for example, `leave.example.edu` and `api.example.edu`) is recommended for reliable cookie behavior. GitHub Pages cannot proxy API requests.
-
-Set these environment variables in the hosting provider's private service settings:
-
-| Variable | Production value |
+| Role | Email |
 | --- | --- |
-| `NODE_ENV` | `production` |
-| `DEV_MODE` | `false` |
-| `MONGODB_URI` | The connection string for the shared hosted MongoDB database |
-| `SESSION_SECRET` | A unique random secret of at least 32 characters |
-| `APP_ORIGIN` | The app's public HTTPS origin, e.g. `https://leave.example.edu` (no path or trailing slash) |
-| `COLLEGE_DOMAIN` | The college email domain used for sign-in |
+| Student 1 | `aarav.sharma_240101@aitpune.edu.in` |
+| Student 2 | `ananya.iyer_240102@aitpune.edu.in` |
+| Student 3 | `rohan.mehta_240103@aitpune.edu.in` |
+| Student 4 | `priya.nair_240104@aitpune.edu.in` |
+| Students 5–10 | `kabir.patel_240105`, `meera.joshi_240106`, `ishaan.kulkarni_240107`, `sana.khan_240108`, `dev.malhotra_240109`, `tara.desai_240110` (append `@aitpune.edu.in`) |
+| Faculty | `faculty@aitpune.edu.in` |
+| Wardens | `beauty.das_wardengirlshostel@aitpune.edu.in`, `umesh.kumar.singh_wardenboyshostel@aitpune.edu.in`, `kajal.khatri_wardenboyshostel@aitpune.edu.in`, `mangesh.uttam.amberkar_wardenboyshostel@aitpune.edu.in`, `vikas.d.ambre_wardenboyshostel@aitpune.edu.in` |
+| Counsellors | `anjali.desai@aitpune.edu.in`, `arjun.kulkarni@aitpune.edu.in` |
+| HOD reviewers | `sushma.patil_hodentc@aitpune.edu.in`, `s.r.dhore_hodcomputerengg@aitpune.edu.in`, `sangeeta.jadhav_hodit@aitpune.edu.in`, `u.v.awasarmol_hodmechanicalengg@aitpune.edu.in`, `j.d.patil_hodare@aitpune.edu.in` |
+| Joint Director | `sudip.khasnavis_jointdirector@aitpune.edu.in` |
 
-The host must pass its assigned port through `PORT` and allow outbound database connections. Configure the MongoDB provider's network access to allow connections from the app host, and create/provision real student and faculty accounts in that shared database before opening the site. Demo account seeding is disabled in production. Never put database credentials or production secrets in source control or a public chat.
+Set `DEMO_PASSWORD` in `server/.env` before the first seed to use a different local demo password. The seeder creates missing accounts and preserves their password hashes on subsequent runs, so a password change is not reset when the app restarts. Demo accounts are for local testing only.
 
-Run exactly one server instance: login revocations and rate limits are currently kept in process memory, so additional instances would not share them. Students and faculty on different computers must visit the same hosted HTTPS URL; requests then read and write the same MongoDB database. The dashboard refreshes leave requests every 15 seconds.
+## How approvals work
+
+- Leave applications proceed through Warden → Counsellor → HOD → Joint Director.
+- Outpasses are approved or rejected by the selected Warden.
+- Urgent leave applications appear first in faculty queues.
+- Completed approvals can be downloaded as PDFs. Outpass PDFs are available after Warden approval.
+- Students and faculty can change their password from their dashboard.
+- The API checks the signed-in user's role and ownership for protected operations.
 
 ## Configuration
 
-See [server/.env.example](server/.env.example). Configuration loads from `server/.env`.
+Configuration is loaded from `server/.env`. See [`server/.env.example`](server/.env.example) for the local template.
 
 | Variable | Purpose |
 | --- | --- |
-| `COLLEGE_DOMAIN` | Allowed email domain; default `aitpune.edu.in`. Students use `name_123456@domain`; faculty use `name@domain` or `name_designation@domain`. |
+| `COLLEGE_DOMAIN` | Allowed email domain; defaults to `aitpune.edu.in`. Student addresses use `name_123456@domain`; faculty addresses use `name@domain` or `name_designation@domain`. |
 | `SESSION_SECRET` | Random secret of at least 32 characters used to sign sessions. |
-| `SESSION_EXPIRY_SECONDS` | Session lifetime; default 28800 seconds. |
-| `DEV_MODE` | Enables local demo account seeding when `true` outside production. |
-| `DEMO_PASSWORD` | Optional password for local seeded demo accounts. |
-| `MONGODB_URI` | MongoDB connection string; defaults to `mongodb://localhost:27017/leave_management`. |
-| `APP_ORIGIN` | Allowed browser origin; default `http://localhost:5173`. |
-| `APP_ORIGINS` | Optional comma-separated list of additional exact frontend origins. Production entries must use HTTPS and must not include paths or trailing slashes. |
-| `COOKIE_SAME_SITE` | Session cookie SameSite setting; defaults to `strict`. Use `none` only for HTTPS cross-site frontend/API deployments. |
-| `PORT` | API port; default 3001. |
-| `NODE_ENV` | Set to `production` behind HTTPS to enable Secure cookies and disable demo account seeding. |
+| `SESSION_EXPIRY_SECONDS` | Maximum session lifetime; defaults to 28800 seconds. |
+| `SESSION_IDLE_SECONDS` | Session idle timeout; defaults to 1800 seconds. |
+| `DEV_MODE` | Enables local demo account seeding when `true` outside production mode. |
+| `DEMO_PASSWORD` | Optional password for locally seeded demo accounts. |
+| `MONGODB_URI` | MongoDB connection string. It must point to this laptop, for example `mongodb://localhost:27017/leave_management`. |
+| `APP_ORIGIN` | Optional compatibility setting; if present, it must be `http://localhost:5173`. |
+| `PORT` | Local API port; defaults to `3001`. The API always binds to `127.0.0.1`. |
+| `NODE_ENV` | `production` serves the built frontend locally and disables demo seeding. |
 
-Accounts must already exist in MongoDB and have a `passwordHash`. The login API does not create accounts. Existing database accounts without a password hash need to have one provisioned before they can sign in. Raw passwords are never stored. Signed-in students and faculty can use **Change password** on their dashboard; after a successful change they must sign in again using the new password.
+`APP_ORIGINS` and non-strict `COOKIE_SAME_SITE` settings are rejected. Remove old deployment values from `server/.env`. Do not configure a cloud database or a public URL.
 
-## API
+Accounts must exist in MongoDB and have a `passwordHash` before they can sign in. Raw passwords are not stored. After changing a password, the user must sign in again with the new password.
+
+## API overview
 
 - `GET /api/auth/config` — returns the allowed college email domain.
-- `POST /api/auth/login` — accepts `{ email, password, role }` and sets the session cookie for a stored account with a valid password hash.
-- `GET /api/auth/session` — returns the current signed-in user or 401.
+- `POST /api/auth/login` — signs in a stored account using `{ email, password, role }`.
+- `GET /api/auth/session` — returns the current signed-in user or `401`.
 - `POST /api/auth/logout` — revokes the current session and clears the cookie.
-- `POST /api/auth/change-password` — verifies the current password, stores a new bcrypt hash, and ends the current session.
-- `GET /api/student/dashboard` and `GET /api/faculty/dashboard` — authenticated role-specific endpoints.
-- `GET /api/leave-requests/approvers` — returns available warden, counsellor, and HOD choices plus the single configured Joint Director.
-- `GET /api/leave-requests` — lists the current student's requests.
-- `POST /api/leave-requests` — submits a student leave request.
-- `GET /api/leave-requests/:id/pdf` — downloads the approval PDF after the relevant approval path completes, including reviewer names and IST timestamps.
-- Leave requests and approval history remain stored in MongoDB, including pending requests, until explicitly cancelled or changed through the approval workflow. Outpass approval PDFs are available immediately after Warden approval.
-- `GET /api/faculty/approvals` and `POST /api/faculty/approvals/:id/decision` — assigned faculty review and decide requests in sequence.
+- `POST /api/auth/change-password` — verifies the current password, saves a new bcrypt hash, and ends the current session.
+- `GET /api/student/dashboard` and `GET /api/faculty/dashboard` — authenticated role-specific dashboards.
+- `GET /api/leave-requests/approvers` — returns available Warden, Counsellor, and HOD choices and the configured Joint Director.
+- `GET /api/leave-requests` and `POST /api/leave-requests` — list and submit the current student's leave requests.
+- `GET /api/leave-requests/:id/pdf` — downloads the approval PDF after its required approvals.
+- `GET /api/faculty/approvals` and `POST /api/faculty/approvals/:id/decision` — retrieve and decide assigned faculty approvals.
 
-Leave requests begin at `pending_warden` and proceed Warden → Counsellor → HOD → Joint Director. Outpasses begin at `pending_warden` and become approved after the Warden's decision. Urgent items are sorted to the top of faculty queues. The API derives the student identity from the signed session and checks ownership for reads and PDF downloads. Session revocations and rate limits are in process memory, so use one API process for this prototype. Production hosting needs HTTPS, same-origin routing for `/api`, and SPA fallback for the client.
+The browser uses the Vite development proxy to send `/api` requests to the local API. Session revocations and rate limits are held in process memory, so the project runs one local API process.
 
-## Validation
+## Run checks
 
-```sh
+```powershell
 npm test
 npm --prefix client run lint
 npm run build

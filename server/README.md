@@ -23,6 +23,6 @@ Faculty users who may review leave requests have an `approvalRole` of `warden`, 
 
 ## Run locally
 
-From the repository root, run `npm run setup`, copy `server/.env.example` to `server/.env`, and set a random `SESSION_SECRET` of at least 32 characters. Requests are stored in persistent MongoDB; the default `MONGODB_URI` is `mongodb://localhost:27017/leave_management`. Ensure that MongoDB is running, or set `MONGODB_URI` to your persistent MongoDB server connection string. Then run `npm run dev`. The Vite client proxies `/api` to port 3001, so the browser and HTTP-only session cookie use the same origin.
+From the repository root, run `npm run setup`, copy `server/.env.example` to `server/.env`, and set a random `SESSION_SECRET` of at least 32 characters. Requests are stored in persistent MongoDB running on this laptop at `mongodb://localhost:27017/leave_management`. Start MongoDB, then run `npm run dev`. The API binds only to `127.0.0.1:3001`; remote database addresses and non-local frontend origins are rejected. The Vite client proxies `/api` to the local API, so the browser and HTTP-only session cookie use the same origin.
 
 For full authentication and environment setup, see the root `README.md`.

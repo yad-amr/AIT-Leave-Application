@@ -14,7 +14,7 @@ require('./database')(config.mongoUri)
     await require('./User').migrateLegacyApproverRoles()
     if (config.devMode) await require('./seed')()
     const app = createApp({ config, users: require('./User') })
-    app.listen(process.env.PORT || 3001, process.env.HOST || (config.production ? '0.0.0.0' : '127.0.0.1'), () => {
+    app.listen(process.env.PORT || 3001, '127.0.0.1', () => {
       console.log(`Smart Leave API listening on port ${process.env.PORT || 3001}`)
     })
   })
